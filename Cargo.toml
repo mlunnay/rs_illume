@@ -1,0 +1,25 @@
+[package]
+name = "illume"
+version = "0.1.0"
+authors = ["Michael Lunnay <mlunnay@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "illume"
+path = "src/bin/illume.rs"
+
+[features]
+float_as_double = []
+
+[dependencies]
+num = "0.2.0"
+hexf = "0.1.0"
+crossbeam-channel = "0.3"
+hashbrown = "0.3"
+parking_lot = "0.9.0"
+log = "0.4.8"
+env_logger = "0.7.1"
+smallvec = "1.0.0"
+#id-arena = "2.2.1"
