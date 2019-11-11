@@ -27,11 +27,23 @@ pub trait Bounding3<T: Copy + PartialOrd + Sub<Output = T> + num::NumCast> {
 
     /// Transform the bounding shape.
     fn transform(&self, t: &Transform) -> Box<dyn Bounding3<Float>>;
-}
 
-pub trait Union<T = Self> {
-    type Output;
-    fn union(&self, rhs: &T) -> Self::Output;
+    /// Return the axis aligned bounding box that encompases 
+    fn aabb(&self) -> Bounds3<T>;
+
+    /// Returns the union of this and another bounding object.
+    /// This merges the axis aligned bounding boxes of both objects.
+    fn union(&self, rhs: &dyn Bounding3<T>) -> Box<dyn Bounding3<T> + 'static>
+    where
+    T: 'static
+    {
+        let a = self.aabb();
+        let b = rhs.aabb();
+        Box::new(Bounds3::<T>{
+            min: a.min.min(&b.min),
+            max: a.max.max(&b.max)
+        })
+    }
 }
 
 /// An axis aligned bounding box.
@@ -192,33 +204,6 @@ impl<T> Bounds3<T> {
         }
     }
 }
-
-impl<T> Union for Bounds3<T>
-where
-T: Copy + PartialOrd
-{
-    type Output = Bounds3<T>;
-    fn union(&self, rhs: &Bounds3<T>) -> Bounds3<T> {
-        Bounds3::<T>{
-            min: self.min.min(&rhs.min),
-            max: self.max.max(&rhs.max)
-        }
-    }
-}
-
-impl<T> Union<Point3<T>> for Bounds3<T>
-where
-T: Copy + PartialOrd
-{
-    type Output = Bounds3<T>;
-    fn union(&self, rhs: &Point3<T>) -> Bounds3<T> {
-        Bounds3::<T>{
-            min: self.min.min(&rhs),
-            max: self.max.max(&rhs)
-        }
-    }
-}
-
 
 impl<T> Bounding3<T> for Bounds3<T>
 where
