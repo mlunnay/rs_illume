@@ -23,7 +23,7 @@ pub struct SurfaceInteraction<'a> {
     pub dndv: Normal3f,
     pub shape: Option<&'a (dyn Shape + Send + Sync)>,
     pub shading: Shading,
-    pub primitive: Option<&'a Primitive>,
+    pub primitive: Option<&'a dyn Primitive>,
     pub bsdf: Option<BSDF>,
     pub bssrdf: Option<BSSRDF>,
     pub dpdx: Arc<RwLock<Vector3f>>, 

@@ -19,3 +19,5 @@ pub mod material;
 pub mod stats_accumulator;
 pub mod profiler;
 pub mod texture;
+pub mod light;
+pub mod utils;

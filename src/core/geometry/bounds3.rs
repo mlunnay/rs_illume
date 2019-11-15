@@ -10,7 +10,7 @@ pub type Bounds3f = Bounds3<Float>;
 
 /// Trait for bounding shapes.
 /// This allows for a mix of bounding shapes not just AABB.
-pub trait Bounding3<T: Copy + PartialOrd + Sub<Output = T> + num::NumCast> {
+pub trait Bounding3<T: Copy + PartialOrd + Sub<Output = T> + Mul<Output=T> + num::NumCast + Add<Output=T>>: Sync {
     /// Test if a Point3 is inside this bounding shape.
     fn inside(&self, p: &Point3<T>) -> bool;
 
@@ -33,7 +33,7 @@ pub trait Bounding3<T: Copy + PartialOrd + Sub<Output = T> + num::NumCast> {
 
     /// Returns the union of this and another bounding object.
     /// This merges the axis aligned bounding boxes of both objects.
-    fn union(&self, rhs: &dyn Bounding3<T>) -> Box<dyn Bounding3<T> + 'static>
+    fn union(&self, rhs: &dyn Bounding3<T>) -> Box<dyn Bounding3<T>>
     where
     T: 'static
     {
@@ -43,6 +43,27 @@ pub trait Bounding3<T: Copy + PartialOrd + Sub<Output = T> + num::NumCast> {
             min: a.min.min(&b.min),
             max: a.max.max(&b.max)
         })
+    }
+
+    /// Return the center point of the bounding object.
+    fn centroid(&self) -> Point3f;
+
+    /// Returns the index for the axis with the greatest length.
+    fn maximum_extent(&self) -> u8 {
+        let d = self.diagonal();
+        if d.x > d.y && d.x > d.z { 0 } else if d.y > d.z { 1 } else { 2 }
+    }
+
+    /// Returns the surface area of the bounding shape.
+    fn surface_area(&self) -> T {
+        let d = self.diagonal();
+        num::cast(2).unwrap() * (d.x * d.y + d.x * d.z + d.y * d.z)
+    }
+
+    /// Returns the volume of the bounding object.
+    fn volume(&self) -> T {
+        let d = self.diagonal();
+        d.x * d.y * d.z
     }
 }
 
@@ -207,8 +228,18 @@ impl<T> Bounds3<T> {
 
 impl<T> Bounding3<T> for Bounds3<T>
 where
-T: Copy + PartialOrd + Sub<Output = T> + num::NumCast
+T: Copy + PartialOrd + Sub<Output = T> + Mul<Output=T> + num::NumCast + Add<Output=T>
 {
+    fn aabb(&self) -> Bounds3<T> {
+        *self
+    }
+
+    fn centroid(&self) -> Point3f {
+        let min: Point3f = self.min.cast();
+        let max: Point3f = self.max.cast();
+        min * 0.5 + max * 0.5
+    }
+
     fn inside(&self, p: &Point3<T>) -> bool {
         p.x >= self.min.x && p.x <= self.max.x &&
         p.y >= self.min.y && p.y <= self.max.y

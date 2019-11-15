@@ -322,19 +322,6 @@ T: Copy + Mul<T, Output = T>
     }
 }
 
-// impl Mul<Vector3f> for Float
-// {
-//     type Output = Vector3f;
-//     #[inline]
-//     fn mul(self, rhs: Vector3f) -> Vector3f {
-//         Vector3f{
-//             x: rhs.x * self,
-//             y: rhs.y * self,
-// 			z: rhs.z * self
-//         }
-//     }
-// }
-
 reverse_mul_scalar!(Vector3, {x, y, z});
 
 impl<T> MulAssign<T> for Vector3<T>

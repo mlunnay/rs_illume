@@ -21,6 +21,12 @@ pub trait Bounding2<T: Copy + PartialOrd + Sub<Output = T>> {
 
     /// The vector along the box diagonal.
     fn diagonal(&self) -> Vector2<T>;
+
+    /// Returns the index for the axis with the greatest length.
+    fn maximum_extent(&self) -> u8 {
+        let d = self.diagonal();
+        if d.x > d.y { 0 } else { 1 }
+    }
 }
 
 /// An axis aligned bounding box.

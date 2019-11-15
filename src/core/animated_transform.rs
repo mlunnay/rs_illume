@@ -1,6 +1,6 @@
 use super::pbrt::{Float, lerp};
 use super::transform::Transform;
-use super::geometry::{Vector3f, Point3f, Ray, Bounds3f, Bounding3, Union};
+use super::geometry::{Vector3f, Point3f, Ray, Bounds3f, Bounding3};
 use super::quaternion::Quaternion;
 use super::matrix::Matrix4x4;
 use super::interval::*;
@@ -1287,31 +1287,32 @@ impl AnimatedTransform {
     }
 
     /// Calculates the bounding box that encompases the entire motion of this AnimatedTransform.
-    pub fn motion_bounds(&self, b: &Bounds3f) -> Bounds3f
+    pub fn motion_bounds<T>(&self, b: Box<dyn Bounding3<Float>>) -> Box<dyn Bounding3<Float>>
     where
-    Bounds3f: Bounding3<f32>
+    T: Copy + std::ops::Sub<Output = T> + PartialOrd + num::NumCast + 'static,
+    Bounds3f: Bounding3<Float>
     {
         if !self.actually_animated {
             self.start_transform.transform_bounds(b)
         }
         else if !self.has_rotation {
-            self.start_transform.transform_bounds(b).union(&self.end_transform.transform_bounds(&b))
+            self.start_transform.transform_bounds(b).union(&*self.end_transform.transform_bounds(b))
         }
         else {
             // Return motion bounds accounting for animated rotation
-            let mut bounds = Bounds3f::default();
+            let mut bounds: Box<dyn Bounding3<Float>> = Box::new(Bounds3f::default());
             for corner in 0..8 {
-                bounds = bounds.union(&self.bound_point_motion(&b.corner(corner)));
+                bounds = bounds.union(&*self.bound_point_motion(&b.aabb().corner(corner)));
             }
             bounds
         }
     }
 
-    pub fn bound_point_motion(&self, p: &Point3f) -> Bounds3f {
+    pub fn bound_point_motion(&self, p: &Point3f) -> Box<dyn Bounding3<Float>> {
         if !self.actually_animated {
-            return Bounds3f::from_point(self.start_transform.transform_point(p));
+            return Box::new(Bounds3f::from_point(self.start_transform.transform_point(p)));
         }
-        let mut bounds = Bounds3f::new(self.start_transform.transform_point(p), self.end_transform.transform_point(p));
+        let mut bounds: Box<dyn Bounding3<Float>> = Box::new(Bounds3f::new(self.start_transform.transform_point(p), self.end_transform.transform_point(p)));
         let cos_theta = self.r[0].dot(&self.r[1]);
         let theta = num::clamp(cos_theta, -1.0, 1.0).acos();
         for c in 0..3 {
@@ -1330,4 +1331,3 @@ impl AnimatedTransform {
         bounds
     }
 }
-
