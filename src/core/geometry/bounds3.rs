@@ -35,7 +35,7 @@ pub trait Bounding3<T: Copy + PartialOrd + Sub<Output = T> + Mul<Output=T> + num
     /// This merges the axis aligned bounding boxes of both objects.
     fn union(&self, rhs: &dyn Bounding3<T>) -> Box<dyn Bounding3<T>>
     where
-    T: 'static
+    T: 'static + Sync
     {
         let a = self.aabb();
         let b = rhs.aabb();
@@ -193,7 +193,7 @@ impl<T> Bounds3<T> {
 
     pub fn bounding_sphere(&self, center: &mut Point3f, radius: &mut Float)
     where
-    T: num::NumCast + Add<Output=T> + Copy + Div<Output=T> + Sub<T, Output=T> + PartialOrd + Mul<Output = T>,
+    T: num::NumCast + Add<Output=T> + Copy + Div<Output=T> + Sub<T, Output=T> + PartialOrd + Mul<Output = T> + Sync,
     f32: std::convert::From<T>
     {
         *center = (self.min + self.max).cast() / 2.0;
@@ -228,7 +228,7 @@ impl<T> Bounds3<T> {
 
 impl<T> Bounding3<T> for Bounds3<T>
 where
-T: Copy + PartialOrd + Sub<Output = T> + Mul<Output=T> + num::NumCast + Add<Output=T>
+T: Copy + PartialOrd + Sub<Output = T> + Mul<Output=T> + num::NumCast + Add<Output=T> + Sync
 {
     fn aabb(&self) -> Bounds3<T> {
         *self

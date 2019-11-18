@@ -5,7 +5,7 @@ use super::interaction::Interaction;
 use super::low_discrepancy::radical_inverse;
 
 /// Interface for Shape objects.
-pub trait Shape {
+pub trait Shape: Send + Sync {
     /// Returns the bounding shape in object coordinates.
     fn object_bound(&self) -> Box<dyn Bounding3<Float>>;
     

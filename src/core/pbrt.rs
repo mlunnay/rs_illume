@@ -151,6 +151,16 @@ pub fn inverse_gamma_correct(value: Float) -> Float {
     }
 }
 
+#[inline]
+pub fn log2_int_u32(v: u32) -> i32 {
+    31 - v.leading_zeros() as i32
+}
+
+#[inline]
+pub fn log2_int_i32(v: i32) -> i32 {
+    31 - v.leading_zeros() as i32
+}
+
 pub fn find_interval<T>(size: usize, predicate: T) -> usize
 where
 T: Fn(usize) -> bool

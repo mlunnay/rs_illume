@@ -8,7 +8,7 @@ use crate::core::stats_accumulator::StatsAccumulator;
 use crate::core::geometry::{Bounds3f, Point3f, Ray, Vector3f, Bounding3};
 use crate::core::utils::slice_extension::SliceExtension;
 use std::sync::{Arc, atomic::{AtomicUsize, Ordering}};
-use obstack::{Obstack};
+use obstack::Obstack;
 use std::mem;
 use rayon::prelude::*;
 use std::ptr;
@@ -540,22 +540,22 @@ impl BVHAccel {
 
 impl Primitive for BVHAccel {
     fn get_area_light(&self) -> Option<Arc<dyn Light>> {
-        error!("BVHAccell::get_area_light() called; should have gone to GeometricPrimitive.");
+        error!("BVHAccel::get_area_light() called; should have gone to GeometricPrimitive.");
         None
     }
 
     fn get_material(&self) -> Option<Arc<dyn Material>> {
-        error!("BVHAccell::get_material() called; should have gone to GeometricPrimitive.");
+        error!("BVHAccel::get_material() called; should have gone to GeometricPrimitive.");
         None
     }
 
     fn compute_scattering_function(&self, arena: &Obstack, isect: &mut SurfaceInteraction, mode: TransportMode, allow_multiple_lobes: bool) {
-        error!("BVHAccell::compute_scattering_function() called; should have gone to GeometricPrimitive.");
+        error!("BVHAccel::compute_scattering_function() called; should have gone to GeometricPrimitive.");
     }
 
     fn world_bound(&self) -> Box<dyn Bounding3<Float>> {
         if self.nodes.len() > 0 {
-            Box::new(self.nodes[0].bounds)
+            Box::new(self.nodes[0].bounds.clone())
         } else {
             Box::new(Bounds3f::default())
         }
