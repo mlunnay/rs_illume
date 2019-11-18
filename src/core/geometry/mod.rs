@@ -17,3 +17,5 @@ pub mod bounds2;
 pub use bounds2::*;
 pub mod bounds3;
 pub use bounds3::*;
+pub mod intergrals;
+pub use intergrals::*;
