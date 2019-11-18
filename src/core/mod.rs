@@ -21,3 +21,4 @@ pub mod profiler;
 pub mod texture;
 pub mod light;
 pub mod utils;
+pub mod spectrum;
