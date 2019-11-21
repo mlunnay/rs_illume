@@ -28,7 +28,7 @@ pub trait Bounding3<T: Copy + PartialOrd + Sub<Output = T> + Mul<Output=T> + num
     /// Transform the bounding shape.
     fn transform(&self, t: &Transform) -> Box<dyn Bounding3<Float>>;
 
-    /// Return the axis aligned bounding box that encompases 
+    /// Return the axis aligned bounding box that encompases this bounding object.
     fn aabb(&self) -> Bounds3<T>;
 
     /// Returns the union of this and another bounding object.

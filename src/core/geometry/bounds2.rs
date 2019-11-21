@@ -27,6 +27,12 @@ pub trait Bounding2<T: Copy + PartialOrd + Sub<Output = T>> {
         let d = self.diagonal();
         if d.x > d.y { 0 } else { 1 }
     }
+
+    /// Returns the axis aligned bounding box that encompases this bounding object.
+    fn aabb(&self) -> Bounds2<T>;
+
+    /// Returns the area of the bounding object.
+    fn area(&self) -> T;
 }
 
 /// An axis aligned bounding box.
@@ -90,7 +96,7 @@ impl<T> Bounds2<T> {
     }
 
     /// Test if a Point2 is inside this Bounds2, ignoring points on the upper boundary.
-    pub fn inside_exclusive(&self, p: Point2<T>) -> bool
+    pub fn inside_exclusive(&self, p: &Point2<T>) -> bool
     where
     T: PartialOrd
     {
@@ -99,7 +105,7 @@ impl<T> Bounds2<T> {
     }
 
     /// Linearly interpolates between the corners of the box by the given amount in each dimension.
-    pub fn lerp(&self, t: Point2<T>) -> Point2<T>
+    pub fn lerp(&self, t: &Point2<T>) -> Point2<T>
     where
     T: num::One + Copy + Add<Output = T> + Sub<Output = T>
     {
@@ -140,6 +146,16 @@ impl<T> Bounds2<T> {
             0.0
         }
     }
+
+    pub fn expand(&self, delta: T) -> Bounds2<T>
+    where
+    T: Copy + Sub<Output=T> + Add<Output=T>
+    {
+        Bounds2::<T>{
+            min: self.min - delta,
+            max: self.max + delta
+        }
+    }
 }
 
 impl<T> Bounding2<T> for Bounds2<T>
@@ -168,6 +184,18 @@ T: Copy + PartialOrd + Sub<Output = T>
     fn diagonal(&self) -> Vector2<T> {
         self.max - self.min
     }
+
+    fn aabb(&self) -> Bounds2<T> {
+        *self
+    }
+
+    fn area(&self) -> T
+    where
+    T: Sub<Output=T> + Mul<Output=T>
+    {
+        let d = self.max - self.min;
+        d.x * d.y
+    }
 }
 
 impl<T> Default for Bounds2<T>
@@ -182,6 +210,8 @@ T: num::Bounded
         }
     }
 }
+
+unsafe impl<T> Send for Bounds2<T> {}
 
 impl<T> Index<u8> for Bounds2<T> {
     type Output = Point2<T>;

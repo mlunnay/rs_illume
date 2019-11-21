@@ -12,6 +12,7 @@ path = "src/bin/illume.rs"
 
 [features]
 float_as_double = []
+sampled_spectrum = []
 
 [dependencies]
 num = "0.2.0"

@@ -79,13 +79,14 @@ pub trait Interaction {
 }
 
 /// A Simple implementation of Interaction.
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct SimpleInteraction {
     pub p: Point3f,
     pub time: Float,
     pub p_error: Vector3f,
     pub wo: Vector3f,
-    pub n: Normal3f
+    pub n: Normal3f,
+    pub medium_interface: Option<Arc<MediumInterface>>
 }
 
 impl SimpleInteraction {
@@ -101,7 +102,8 @@ impl SimpleInteraction {
             time,
             p_error,
             wo,
-            n
+            n,
+            medium_interface: None
         }
     }
 }
@@ -127,4 +129,7 @@ impl Interaction for SimpleInteraction {
         self.n
     }
 
+    fn get_medium_interface(&self) -> Option<Arc<MediumInterface>> {
+        self.medium_interface
+    }
 }

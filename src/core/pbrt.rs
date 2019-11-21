@@ -1,5 +1,11 @@
 //! Type definitions and constants.
 use std::ops::{Sub, Add, Mul};
+use super::spectrum::*;
+
+#[cfg(feature = "sampled_spectrum")]
+pub type Spectrum = SampledSpectrum;
+#[cfg(not(feature = "sampled_spectrum"))]
+pub type Spectrum = RGBSpectrum;
 
 #[cfg(feature = "float_as_double")]
 mod float_mod {
@@ -179,4 +185,31 @@ T: Fn(usize) -> bool
         }
     }
     num::clamp(first.saturating_sub(1), 0, size.saturating_sub(2))
+}
+
+#[inline]
+pub fn quadratic(
+    a: Float,
+    b: Float,
+    c: Float,
+    t0: &mut Float,
+    t1: &mut Float
+) -> bool {
+    // Find quadratic discriminant
+    let discrim = b as f64 * b as f64 - 4.0 * a as f64 * c as f64;
+    if discrim < 0.0 { return false; }
+    let root_discrim = discrim.sqrt();
+
+    // Compute quadratic _t_ values
+    let q = if b < 0.0 {
+        -0.5 * (b as f64 - root_discrim)
+    } else {
+        -0.5 * (b as f64 + root_discrim)
+    };
+    *t0 = num::cast::cast(q / a as f64).unwrap();
+    *t1 = num::cast::cast(c as f64 / q).unwrap();
+    if *t0 > *t1 {
+        std::mem::swap(t0, t1);
+    }
+    true
 }

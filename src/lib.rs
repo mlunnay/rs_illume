@@ -9,3 +9,4 @@ extern crate rayon;
 pub mod core;
 pub mod shapes;
 pub mod accelerators;
+pub mod cameras;

@@ -2,7 +2,7 @@ use super::geometry::{Vector3f, Normal3f, Point3f, Ray, Bounding3};
 use super::matrix::Matrix4x4;
 use super::pbrt::{Float, radians, gamma};
 use super::surface_interaction::SurfaceInteraction;
-use std::ops::{Mul};
+use std::ops::{Mul, Add};
 use std::sync::{Arc, RwLock};
 
 #[derive(Debug, Copy, Clone)]
@@ -481,7 +481,7 @@ impl Transform {
     /// Transform a given Bounds3f.
     pub fn transform_bounds<T>(&self, b: Box<dyn Bounding3<T>>) -> Box<dyn Bounding3<Float>>
     where
-    T: Copy + std::ops::Sub<Output=T> + PartialOrd + num::NumCast
+    T: Copy + std::ops::Sub<Output=T> + PartialOrd + num::NumCast + Add<Output=T> + Mul<Output=T>
     {
         b.transform(self)
     }
@@ -528,6 +528,22 @@ impl Transform {
             self.m.m[0][1] * (self.m.m[1][0] * self.m.m[2][2] - self.m.m[1][2] * self.m.m[2][0]) +
             self.m.m[0][2] * (self.m.m[1][0] * self.m.m[2][1] - self.m.m[1][1] * self.m.m[2][0]);
         det < 0.0
+    }
+
+    /// Create a transform into an orthographic space.
+    pub fn orthographic(z_near: Float, z_far: Float) -> Transform {
+        Transform::scale(1.0, 1.0, 1.0 / (z_far - z_near))
+    }
+
+    /// Create a transform into a perspective space.
+    pub fn perspective(fov: Float, n: Float, f: Float) -> Transform {
+        // Perform projective divide for perspective projection
+        let persp = Matrix4x4::new(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, f / (f - n),
+            -f * n / (f - n), 0.0, 0.0, 1.0, 0.0);
+        
+        // Scale canonical perspective view to specified field of view
+        let inv_tan_ang = 1.0 / (radians(fov) / 2.0).tan();
+        Transform::scale(inv_tan_ang, inv_tan_ang, 1.0)
     }
 }
 

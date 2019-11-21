@@ -260,7 +260,6 @@ impl BVHAccel {
             bounds = bounds.union(&Bounds3f::from_point(pi.centroid)).aabb();
         }
         let v = vec![0_u8; 100];
-        v.par_iter();
         // Compute Morton indices of primitives
         let mut morton_prims: Vec<MortonPrimitive> = primitive_info.par_iter()
             .map(|pi| {
