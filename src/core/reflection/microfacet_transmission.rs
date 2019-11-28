@@ -6,10 +6,9 @@ use crate::core::reflection::refract;
 use crate::core::material::TransportMode;
 use std::fmt;
 
-#[derive(Copy, Clone)]
 pub struct MicrofacetTransmission {
     t: Spectrum,
-    distribution: MicrofacetDistribution,
+    distribution: Box<dyn MicrofacetDistribution>,
     eta_a: Float,
     eta_b: Float,
     fresnel: FresnelDielectric,
@@ -19,7 +18,7 @@ pub struct MicrofacetTransmission {
 impl MicrofacetTransmission {
     pub fn new(
         t: Spectrum,
-        distribution: MicrofacetDistribution,
+        distribution: Box<dyn MicrofacetDistribution>,
         eta_a: Float,
         eta_b: Float,
         mode: TransportMode

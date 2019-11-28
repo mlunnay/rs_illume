@@ -4,7 +4,7 @@ use crate::core::geometry::{Vector3f, Point2f};
 use std::fmt;
 use std::sync::Arc;
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct ScaledBxDF {
     bxdf: Arc<dyn BxDF>,
     scale: Spectrum

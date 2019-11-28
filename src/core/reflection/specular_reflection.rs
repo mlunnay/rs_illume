@@ -3,7 +3,6 @@ use crate::core::pbrt::{Float, Spectrum};
 use crate::core::geometry::{Vector3f, Point2f};
 use std::fmt;
 
-#[derive(Copy, Clone)]
 pub struct SpecularReflection {
     r: Spectrum,
     fresnel: Box<dyn Fresnel>

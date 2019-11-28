@@ -6,15 +6,14 @@ use crate::core::rng::ONE_MINUS_EPSILON;
 use crate::core::reflection::reflect;
 use std::fmt;
 
-#[derive(Copy, Clone)]
 pub struct FresnelBlend {
     rd: Spectrum,
     rs: Spectrum,
-    distribution: MicrofacetDistribution
+    distribution: Box<dyn MicrofacetDistribution>
 }
 
 impl FresnelBlend {
-    pub fn new(rd: Spectrum, rs: Spectrum, distribution: MicrofacetDistribution) -> FresnelBlend {
+    pub fn new(rd: Spectrum, rs: Spectrum, distribution: Box<dyn MicrofacetDistribution>) -> FresnelBlend {
         FresnelBlend{ rd, rs, distribution }
     }
 
@@ -67,7 +66,7 @@ impl BxDF for FresnelBlend {
             u[0] = (2.0 * (u[0] - 0.5)).min(ONE_MINUS_EPSILON);
             // Sample microfacet orientation $\wh$ and reflected direction $\wi$
             let wh = self.distribution.sample_wh(wo, u);
-            *wi = reflect(wo, wh);
+            *wi = reflect(wo, &wh);
             if !same_hemisphere(wo, wi) {
                 return Spectrum::new(0.0);
             }

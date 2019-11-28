@@ -5,17 +5,16 @@ use crate::core::microfacet::MicrofacetDistribution;
 use crate::core::reflection::reflect;
 use std::fmt;
 
-#[derive(Copy, Clone)]
 pub struct MicrofacetReflection {
     r: Spectrum,
-    distribution: MicrofacetDistribution,
+    distribution: Box<dyn MicrofacetDistribution>,
     fresnel: Box<dyn Fresnel>
 }
 
 impl MicrofacetReflection {
     pub fn new(
         r: Spectrum,
-        distribution: MicrofacetDistribution,
+        distribution: Box<dyn MicrofacetDistribution>,
         fresnel: Box<dyn Fresnel>
     ) -> MicrofacetReflection {
         MicrofacetReflection { r, distribution, fresnel }
