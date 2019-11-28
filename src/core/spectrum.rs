@@ -73,8 +73,8 @@ macro_rules! CoefficientSpectrumMethods {
             ret
         }
 
-        pub fn lerp(&self, s2: Self, t: Float) -> Self {
-            *self * (1.0 - t) + s2 * t
+        pub fn lerp(&self, s2: &Self, t: Float) -> Self {
+            *self * (1.0 - t) + *s2 * t
         }
 
         const n_samples: usize = $n_spectrum_samples;

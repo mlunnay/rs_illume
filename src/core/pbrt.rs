@@ -213,3 +213,56 @@ pub fn quadratic(
     }
     true
 }
+
+#[inline]
+pub fn erf_inv(mut x: Float) -> Float {
+    let mut p: Float;
+    x = num::clamp(x, -0.99999, 0.99999);
+    let mut w = -((1.0 - x) * (1.0 + x)).ln();
+    if w < 5.0 {
+        w = w - 2.5;
+        p = 2.81022636e-08;
+        p = 3.43273939e-07 + p * w;
+        p = -3.5233877e-06 + p * w;
+        p = -4.39150654e-06 + p * w;
+        p = 0.00021858087 + p * w;
+        p = -0.00125372503 + p * w;
+        p = -0.00417768164 + p * w;
+        p = 0.246640727 + p * w;
+        p = 1.50140941 + p * w;
+    } else {
+        w = w.sqrt() - 3.0;
+        p = -0.000200214257;
+        p = 0.000100950558 + p * w;
+        p = 0.00134934322 + p * w;
+        p = -0.00367342844 + p * w;
+        p = 0.00573950773 + p * w;
+        p = -0.0076224613 + p * w;
+        p = 0.00943887047 + p * w;
+        p = 1.00167406 + p * w;
+        p = 2.83297682 + p * w;
+    }
+    p * x
+}
+#[inline]
+pub fn erf(mut x: Float) -> Float {
+    // constants
+    let a1: Float = 0.254829592;
+    let a2: Float = -0.284496736;
+    let a3: Float = 1.421413741;
+    let a4: Float = -1.453152027;
+    let a5: Float = 1.061405429;
+    let p: Float = 0.3275911;
+
+    // Save the sign of x
+    let mut sign = 1.0;
+    if x < 0.0 {
+        sign = -1.0;
+    }
+    x = x.abs();
+
+    // A&S formula 7.1.2.6
+    let t = 1.0 / (1.0 + p * x);
+    let y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * (-x * x).exp();
+    sign * y
+}

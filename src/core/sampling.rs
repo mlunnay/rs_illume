@@ -1,7 +1,7 @@
 //! 1D and 2D Sampling structures and functions.
 
 use super::rng::{Rng, ONE_MINUS_EPSILON};
-use super::pbrt::{Float, find_interval, lerp, consts::{PI, INV_2_PI, INV_4_PI, FRAC_PI_4, FRAC_PI_2}};
+use super::pbrt::{Float, find_interval, lerp, consts::{PI, INV_PI, INV_2_PI, INV_4_PI, FRAC_PI_4, FRAC_PI_2}};
 use super::geometry::{Point2f, Vector3f, Vector2f};
 use std::sync::Arc;
 
@@ -310,4 +310,28 @@ fn latin_hypercube(samples: &mut Vec<Float>, n_samples: u32, n_dim: u32, rng: &R
             samples.swap((n_dim * j + i) as usize, (n_dim * other + i) as usize);
         }
     }
+}
+
+#[inline]
+pub fn cosine_sample_hemisphere(u: &Point2f) -> Vector3f {
+    let d = concentric_sample_disk(u);
+    let z = (1.0 - d.x * d.x - d.y * d.y).max(0.0).sqrt();
+    Vector3f::new(d.x, d.y, z)
+}
+
+#[inline]
+pub fn cosine_hemisphere_pdf(cos_theta: Float) -> Float {
+    cos_theta * INV_PI
+}
+
+#[inline]
+pub fn balance_Heuristic(nf: i32, f_pdf: Float, ng: i32, g_pdf: Float) -> Float {
+    (nf as Float * f_pdf) / (nf as Float * f_pdf * ng as Float * g_pdf)
+}
+
+#[inline]
+pub fn power_heuristic(nf: i32, f_pdf: Float, ng: i32, g_pdf: Float) -> Float {
+    let f = nf as Float * f_pdf;
+    let g = ng as Float * g_pdf;
+    (f * f) / (f * f + g * g)
 }

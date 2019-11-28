@@ -1,6 +1,7 @@
 use obstack::Obstack;
 use super::surface_interaction::SurfaceInteraction;
 
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TransportMode {
     Radiance,
     Importance

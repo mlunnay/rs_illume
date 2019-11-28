@@ -1,3 +1,5 @@
+#[macro_use]
+pub mod vlog;
 pub mod pbrt;
 pub mod geometry;
 pub mod medium;
@@ -23,3 +25,5 @@ pub mod light;
 pub mod utils;
 pub mod spectrum;
 pub mod camera;
+pub mod reflection;
+pub mod microfacet;
