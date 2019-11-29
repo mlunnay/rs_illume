@@ -1,7 +1,6 @@
 use super::{BxDF, BxDFType, cos_theta, cos_d_phi, sin2_theta};
 use crate::core::pbrt::{Float, Spectrum, consts::PI};
 use crate::core::geometry::{Vector3f, Point2f};
-use crate::core::microfacet::MicrofacetDistribution;
 use crate::core::material::TransportMode;
 use crate::core::interpolation::{catmull_rom_weights, fourier, sample_fourier, sample_catmull_rom_2d };
 use std::fmt;
@@ -76,7 +75,7 @@ impl BxDF for FourierBSDF {
         }
 
         // Evaluate Fourier expansion for angle $\phi$
-        let y = fourier(&ak, m_max, cos_phi).max(0.0);
+        let y = fourier(&ak, m_max as usize, cos_phi as f64).max(0.0);
         let mut scale = if mu_i != 0.0 { 1.0 / mu_i.abs() } else { 0.0 };
 
         // Update _scale_ to account for adjoint light transport
@@ -88,8 +87,8 @@ impl BxDF for FourierBSDF {
             Spectrum::new(y * scale)
         } else {
             // Compute and return RGB colors for tabulated BSDF
-            let r = fourier(&ak, self.bsdf_table.m_max as usize, m_max, cos_phi);
-            let b = fourier(&ak, 2 * self.bsdf_table.m_max as usize, m_max, cos_phi);
+            let r = fourier(&ak[self.bsdf_table.m_max as usize..], m_max as usize, cos_phi as f64);
+            let b = fourier(&ak[2 * self.bsdf_table.m_max as usize..], m_max as usize, cos_phi as f64);
             let g = 1.39829 * y - 0.100913 * b - 0.297375 * r;
             let rgb: [Float; 3] = [r * scale, g * scale, b * scale];
             Spectrum::from_rgb(&rgb).clamp(0.0, Float::infinity())
@@ -115,7 +114,7 @@ impl BxDF for FourierBSDF {
             mu_o,
             sample[1],
             None,
-            &mut pdf_mu);
+            Some(&mut pdf_mu));
         
         // Compute Fourier coefficients $a_k$ for $(\mui, \muo)$
 
@@ -155,7 +154,7 @@ impl BxDF for FourierBSDF {
         // Importance sample the luminance Fourier expansion
         let mut phi: Float = 0.0;
         let mut pdf_phi: Float = 0.0;
-        let y = sample_fourier(&ak, self.bsdf_table.recip, m_max, sample[0], &mut pdf_phi, &mut phi);
+        let y = sample_fourier(&ak, &self.bsdf_table.recip, m_max as usize, sample[0], &mut pdf_phi, &mut phi);
         *pdf = (pdf_phi * pdf_mu).max(0.0);
 
         // Compute the scattered direction for _FourierBSDF_
@@ -189,8 +188,8 @@ impl BxDF for FourierBSDF {
         if self.bsdf_table.n_channels == 1 {
             return Spectrum::new(y * scale);
         }
-        let r = fourier(&ak, self.bsdf_table.m_max as usize, m_max, cos_phi);
-        let b = fourier(&ak, 2 * self.bsdf_table.m_max as usize, m_max, cos_phi);
+        let r = fourier(&ak[self.bsdf_table.m_max as usize..], m_max as usize, cos_phi as f64);
+        let b = fourier(&ak[2 * self.bsdf_table.m_max as usize..], m_max as usize, cos_phi as f64);
         let g = 1.39829 * y - 0.100913 * b - 0.297375 * r;
         let rgb: [Float; 3] = [r * scale, g * scale, b * scale];
         Spectrum::from_rgb(&rgb).clamp(0.0, Float::infinity())
@@ -243,7 +242,7 @@ impl BxDF for FourierBSDF {
             rho += weights_o[o] * self.bsdf_table.cdf[offset_o + 0 * self.bsdf_table.mu.len() + self.bsdf_table.mu.len() - 1] *
                 (2.0 * PI);
         }
-        let y = fourier(&ak, m_max, cos_phi);
+        let y = fourier(&ak, m_max as usize, cos_phi as f64);
         if rho > 0.0 && y > 0.0 {
             y / rho
         } else {
