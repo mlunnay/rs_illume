@@ -28,6 +28,14 @@ impl TrowbridgeReitzDistribution {
         1.62142 + 0.819955 * x + 0.1734 * x * x +
             0.0171201 * x * x * x + 0.000640711 * x * x * x * x
     }
+
+    pub fn get_alphax(&self) -> Float {
+        self.alphax
+    }
+
+    pub fn get_alphay(&self) -> Float {
+        self.alphay
+    }
 }
 
 impl MicrofacetDistribution for TrowbridgeReitzDistribution {

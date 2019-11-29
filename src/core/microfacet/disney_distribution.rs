@@ -41,6 +41,6 @@ impl MicrofacetDistribution for DisneyMicrofacetDistribution {
 
 impl fmt::Display for DisneyMicrofacetDistribution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[ DisneyMicrofacetDistribution alpha_x: {} alpha_y: {} ]", self.alphax, self.alphay)
+        write!(f, "[ DisneyMicrofacetDistribution alpha_x: {} alpha_y: {} ]", self.inner.get_alphax(), self.inner.get_alphay())
     }
 }
