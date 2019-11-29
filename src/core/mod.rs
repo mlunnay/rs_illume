@@ -27,3 +27,4 @@ pub mod spectrum;
 pub mod camera;
 pub mod reflection;
 pub mod microfacet;
+pub mod interpolation;
