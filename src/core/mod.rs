@@ -28,3 +28,5 @@ pub mod camera;
 pub mod reflection;
 pub mod microfacet;
 pub mod interpolation;
+pub mod bssrdf;
+pub mod scene;

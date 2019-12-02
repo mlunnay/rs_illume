@@ -1,7 +1,15 @@
-use super::pbrt::{Float, consts::SHADOW_EPSILON};
-use super::geometry::{Vector3f, Normal3f, Point3f, Ray, offset_ray_origin};
-use super::medium::{Medium, MediumInterface};
-use std::sync::Arc;
+use super::pbrt::{Float, Spectrum, consts::SHADOW_EPSILON};
+use super::geometry::{Vector3f, Normal3f, Point2f, Point3f, Ray, offset_ray_origin, dot_normal_vec};
+use super::medium::{Medium, MediumInterface, PhaseFunction};
+use super::shape::Shape;
+use super::primitive::Primitive;
+use super::reflection::BSDF;
+use super::bssrdf::BSSRDF;
+use super::material::TransportMode;
+use super::transform::solve_linear_system2x2;
+use obstack::Obstack;
+
+use std::sync::{Arc, RwLock};
 
 pub trait Interaction {
     fn get_p(&self) -> Point3f;
@@ -109,6 +117,313 @@ impl SimpleInteraction {
 }
 
 impl Interaction for SimpleInteraction {
+    fn get_p(&self) -> Point3f {
+        self.p
+    }
+
+    fn get_time(&self) -> Float {
+        self.time
+    }
+
+    fn get_p_error(&self) -> Vector3f {
+        self.p_error
+    }
+
+    fn get_wo(&self) -> Vector3f {
+        self.wo
+    }
+
+    fn get_n(&self) -> Normal3f {
+        self.n
+    }
+
+    fn get_medium_interface(&self) -> Option<Arc<MediumInterface>> {
+        self.medium_interface
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct MediumInteraction {
+    // Interaction fields
+    pub p: Point3f,
+    pub time: Float,
+    pub p_error: Vector3f,
+    pub wo: Vector3f,
+    pub n: Normal3f,
+    pub medium_interface: Option<Arc<MediumInterface>>,
+    
+    pub phase: Option<Arc<dyn PhaseFunction>>
+}
+
+impl MediumInteraction {
+    pub fn new(
+        p: Point3f,
+        wo: Vector3f,
+        time: Float,
+        medium_interface: Option<Arc<MediumInterface>>,
+        phase: Option<Arc<dyn PhaseFunction>>
+    ) -> MediumInteraction {
+        MediumInteraction {
+            p,
+            time,
+            p_error: Vector3f::default(),
+            wo,
+            n: Normal3f::default(),
+            medium_interface,
+            phase
+        }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.phase.is_some()
+    }
+}
+
+impl Interaction for MediumInteraction {
+    fn get_p(&self) -> Point3f {
+        self.p
+    }
+
+    fn get_time(&self) -> Float {
+        self.time
+    }
+
+    fn get_p_error(&self) -> Vector3f {
+        self.p_error
+    }
+
+    fn get_wo(&self) -> Vector3f {
+        self.wo
+    }
+
+    fn get_n(&self) -> Normal3f {
+        self.n
+    }
+
+    fn get_medium_interface(&self) -> Option<Arc<MediumInterface>> {
+        self.medium_interface
+    }
+}
+
+#[derive(Default, Debug, Clone, Copy)]
+pub struct Shading {
+    n: Normal3f,
+    dpdu: Vector3f,
+    dpdv: Vector3f,
+    dndu: Normal3f,
+    dndv: Normal3f
+}
+
+#[derive(Default, Clone)]
+pub struct SurfaceInteraction {
+    // Interaction fields
+    pub p: Point3f,
+    pub time: Float,
+    pub p_error: Vector3f,
+    pub wo: Vector3f,
+    pub n: Normal3f,
+    pub medium_interface: Option<Arc<MediumInterface>>,
+
+    pub uv: Point2f,
+    pub dpdu: Vector3f,
+    pub dpdv: Vector3f,
+    pub dndu: Normal3f,
+    pub dndv: Normal3f,
+    pub shape: Option<Arc<dyn Shape>>,
+    pub shading: Shading,
+    pub primitive: Option<Arc<dyn Primitive>>,
+    pub bsdf: Option<BSDF>,
+    pub bssrdf: Option<dyn BSSRDF>,
+    pub dpdx: RwLock<Vector3f>,
+    pub dpdy: RwLock<Vector3f>,
+    pub dudx: RwLock<Float>,
+    pub dudy: RwLock<Float>,
+    pub face_index: u32
+}
+
+impl SurfaceInteraction {
+    pub fn new(
+        p: Point3f,
+        p_error: Vector3f,
+        uv: Point2f,
+        wo: Vector3f,
+        dpdu: Vector3f,
+        dpdv: Vector3f,
+        dndu: Normal3f,
+        dndv: Normal3f,
+        time: Float,
+        shape: Option<Arc<dyn Shape>>,
+        face_index: u32
+    ) -> SurfaceInteraction {
+        let mut n = Normal3f::from(dpdu.cross(dpdv).normalize());
+        // Adjust normal based on orientation and handedness
+        if shape && shape.get_reverse_orientation() ^ shape.get_transform_swaps_handedness() != 0 {
+            n *= -1;
+        }
+        let shading = Shading {
+            n,
+            dpdu,
+            dpdv,
+            dndu,
+            dndv
+        };
+
+        SurfaceInteraction {
+            p,
+            p_error,
+            uv,
+            wo,
+            n,
+            dpdx: RwLock::new(Vector3f::default),
+            dpdy: RwLock::new(Vector3f::default),
+            dpdu: RwLock::new(dpdu),
+            dpdv: RwLock::new(dpdv),
+            dndu: RwLock::new(dndu),
+            dndv: RwLock::new(dndv),
+            time,
+            shape: shape.clone(),
+            medium_interface: None,
+            face_index,
+            shading: Shading::default(),
+            primitive: None,
+            bsdf: None,
+            bssrdf: None
+        }
+    }
+
+    pub fn set_shading_geometry(
+        &self,
+        dpdu: &Vector3f,
+        dpdv: &Vector3f,
+        dndu: &Normal3f,
+        dndv: &Normal3f,
+        orientation_is_authoritative: bool
+    ) {
+        // Compute _shading.n_ for _SurfaceInteraction_
+        self.shading.n = Normal3f::from(dpdu.cross(dpdv).normalize());
+        if orientation_is_authoritative {
+            self.n = self.n.face_forward(self.shading.n);
+        } else {
+            self.shading.n = self.shading.n.face_forward(self.n);
+        }
+
+        // Initialize _shading_ partial derivative values
+        self.shading.dpdu = *dpdu;
+        self.shading.dpdv = *dpdv;
+        self.shading.dndu = *dndu;
+        self.shading.dndv = *dndv;
+    }
+
+    pub fn le(&self, w: &Vector3f) -> Spectrum {
+        if let Some(primitive) = self.primitive {
+            if let Some(area) = primitive.get_area_light() {
+                return area.l(self, w);
+            }
+        }
+        Spectrum::new(0.0);
+    }
+
+    pub fn computer_scattering_functions(
+        &self,
+        ray: &Ray,
+        arena: &mut Obstack,
+        allow_multiple_lobes: bool,
+        mode: TransportMode
+    ) {
+        self.compute_differentials(ray);
+        if let Some(primitive) = self.primitive {
+            primitive.computer_scattering_functions(self, arena, mode, allow_multiple_lobes);
+        }
+    }
+
+    pub fn compute_differentials(
+        &self,
+        ray: &Ray
+    ) {
+        if let Some(rdiff) = ray.differential {
+            // Estimate screen space change in $\pt{}$ and $(u,v)$
+
+            // Compute auxiliary intersection points with plane
+            let d = dot_normal_vec(&self.n, &Vector3f::new(self.p.x, self.p.y, self.p.z));
+            let tx = -(dot_normal_vec(&self.n, &rdiff.rx_origin) - d) / dot_normal_vec(&self.n, &rdiff.rx_direction);
+            if !tx.is_finite() {
+                let mut dudx = self.dudx.write().unwrap();
+                *dudx = 0.0;
+                let mut dudy = self.dudy.write().unwrap();
+                *dudy = 0.0;
+                let mut dvdx = self.dvdx.write().unwrap();
+                *dvdx = 0.0;
+                let mut dvdy = self.dvdy.write().unwrap();
+                *dvdy = 0.0;
+                let mut dpdx = self.dpdx.write().unwrap();
+                *dpdx = Vector3f::default();
+                let mut dpdy = self.dpdy.write().unwrap();
+                *dpdy = Vector3f::default();
+            }
+            let px = rdiff.rx_origin + tx * rdiff.rx_direction;
+            let ty: Float = -(dot_normal_vec(&self.n, &rdiff.ry_origin) - d) / dot_normal_vec(&self.n, &rdiff.ry_direction);
+            if !ty.is_finite() {
+                let mut dudx = self.dudx.write().unwrap();
+                *dudx = 0.0;
+                let mut dudy = self.dudy.write().unwrap();
+                *dudy = 0.0;
+                let mut dvdx = self.dvdx.write().unwrap();
+                *dvdx = 0.0;
+                let mut dvdy = self.dvdy.write().unwrap();
+                *dvdy = 0.0;
+                let mut dpdx = self.dpdx.write().unwrap();
+                *dpdx = Vector3f::default();
+                let mut dpdy = self.dpdy.write().unwrap();
+                *dpdy = Vector3f::default();
+            }
+            let py = rdiff.ry_origin + ty * rdiff.ry_direction;
+            *self.dpdx.write().unwrap() = px - self.p;
+            *self.dpdy.write().unwrap() = py - self.p;
+
+            // Compute $(u,v)$ offsets at auxiliary points
+
+            // Choose two dimensions to use for ray offset computation
+            let dim: [usize] = if self.n.x.abs() > self.n.y.abs() && self.n.x.abs() > self.n.z.abs() {
+                [1, 2]
+            } else if self.n.y.abs() > self.n.z.abs() {
+                [0, 2]
+            } else {
+                [0, 1]
+            };
+
+            // Initialize _A_, _Bx_, and _By_ matrices for offset computation
+            let a = [
+                [self.dpdu[dim[0]], self.dpdv[dim[0]]],
+                [self.dpdu[dim[1]], self.dpdv[dim[1]]]
+            ];
+            let bx = [px[dim[0]] - self.p[dim[0]], px[dim[1]] - self.p[dim[1]]];
+            let by = [py[dim[0]] - self.p[dim[0]], py[dim[1]] - self.p[dim[1]]];
+            if !solve_linear_system2x2(a, bx, &mut self.dudx, &mut self.dvdx) {
+                self.dudx = 0.0;
+                self.dvdx = 0.0;
+            }
+            if !solve_linear_system2x2(a, by, &mut self.dudy, &mut self.dvdy) {
+                self.dudy = 0.0;
+                self.dvdy = 0.0;
+            }
+        } else {
+            let mut dudx = self.dudx.write().unwrap();
+            *dudx = 0.0;
+            let mut dudy = self.dudy.write().unwrap();
+            *dudy = 0.0;
+            let mut dvdx = self.dvdx.write().unwrap();
+            *dvdx = 0.0;
+            let mut dvdy = self.dvdy.write().unwrap();
+            *dvdy = 0.0;
+            let mut dpdx = self.dpdx.write().unwrap();
+            *dpdx = Vector3f::default();
+            let mut dpdy = self.dpdy.write().unwrap();
+            *dpdy = Vector3f::default();
+        }
+    }
+}
+
+impl Interaction for SurfaceInteraction {
     fn get_p(&self) -> Point3f {
         self.p
     }

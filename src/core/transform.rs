@@ -580,3 +580,16 @@ impl From<Matrix4x4> for Transform {
         }
     }
 }
+
+pub fn solve_linear_system2x2(a: [[Float; 2]; 2], b: [Float; 2], x0: &mut Float, x1: &mut Float) -> bool {
+    let det = a[0][0] * a[1][1] - a[0][1] * a[1][0];
+    if det.abs() < 1e-10 {
+        return false;
+    }
+    *x0 = (a[1][1] * b[0] - a[0][1] * b[1]) / det;
+    *x1 = (a[0][0] * b[1] - a[1][0] * b[0]) / det;
+    if x0.is_nan() || *x1.is_nan() {
+        return false;
+    }
+    true
+}

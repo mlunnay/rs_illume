@@ -7,7 +7,7 @@ lazy_static!{
 
 const SAMPLED_LAMBDA_START: Float = 400.0;
 const SAMPLED_LAMBDA_END: Float = 700.0;
-const N_SPECTRAL_SAMPLES: usize = 60;
+pub const N_SPECTRAL_SAMPLES: usize = 60;
 
 macro_rules! CoefficientSpectrumMethods {
     ($n_spectrum_samples: expr) => {
