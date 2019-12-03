@@ -30,3 +30,4 @@ pub mod microfacet;
 pub mod interpolation;
 pub mod bssrdf;
 pub mod scene;
+pub mod sampler;
