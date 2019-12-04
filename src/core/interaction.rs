@@ -142,7 +142,7 @@ impl Interaction for SimpleInteraction {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Default, Clone)]
 pub struct MediumInteraction {
     // Interaction fields
     pub p: Point3f,
@@ -214,7 +214,7 @@ pub struct Shading {
     pub dndv: Normal3f
 }
 
-#[derive(Default, Clone)]
+#[derive(Default)]
 pub struct SurfaceInteraction {
     // Interaction fields
     pub p: Point3f,
@@ -233,11 +233,13 @@ pub struct SurfaceInteraction {
     pub shading: Shading,
     pub primitive: Option<Arc<dyn Primitive>>,
     pub bsdf: Option<BSDF>,
-    pub bssrdf: Option<dyn BSSRDF>,
+    pub bssrdf: Option<Box<dyn BSSRDF>>,
     pub dpdx: RwLock<Vector3f>,
     pub dpdy: RwLock<Vector3f>,
     pub dudx: RwLock<Float>,
     pub dudy: RwLock<Float>,
+    pub dvdx: RwLock<Float>,
+    pub dvdy: RwLock<Float>,
     pub face_index: u32
 }
 
@@ -255,10 +257,12 @@ impl SurfaceInteraction {
         shape: Option<Arc<dyn Shape>>,
         face_index: u32
     ) -> SurfaceInteraction {
-        let mut n = Normal3f::from(dpdu.cross(dpdv).normalize());
+        let mut n = Normal3f::from(dpdu.cross(&dpdv).normalize());
         // Adjust normal based on orientation and handedness
-        if shape && shape.get_reverse_orientation() ^ shape.get_transform_swaps_handedness() != 0 {
-            n *= -1;
+        if let Some(shape) = shape {
+            if shape.get_reverse_orientation() ^ shape.get_transform_swaps_handedness() {
+                n *= -1.0;
+            }
         }
         let shading = Shading {
             n,
@@ -274,12 +278,16 @@ impl SurfaceInteraction {
             uv,
             wo,
             n,
-            dpdx: RwLock::new(Vector3f::default),
-            dpdy: RwLock::new(Vector3f::default),
-            dpdu: RwLock::new(dpdu),
-            dpdv: RwLock::new(dpdv),
-            dndu: RwLock::new(dndu),
-            dndv: RwLock::new(dndv),
+            dpdu,
+            dpdv,
+            dndu,
+            dndv,
+            dpdx: RwLock::new(Vector3f::default()),
+            dpdy: RwLock::new(Vector3f::default()),
+            dudx: RwLock::new(0.0),
+            dudy: RwLock::new(0.0),
+            dvdx: RwLock::new(0.0),
+            dvdy: RwLock::new(0.0),
             time,
             shape: shape.clone(),
             medium_interface: None,
@@ -292,7 +300,7 @@ impl SurfaceInteraction {
     }
 
     pub fn set_shading_geometry(
-        &self,
+        &mut self,
         dpdu: &Vector3f,
         dpdv: &Vector3f,
         dndu: &Normal3f,
@@ -302,9 +310,9 @@ impl SurfaceInteraction {
         // Compute _shading.n_ for _SurfaceInteraction_
         self.shading.n = Normal3f::from(dpdu.cross(dpdv).normalize());
         if orientation_is_authoritative {
-            self.n = self.n.face_forward(self.shading.n);
+            self.n = self.n.face_forward(&self.shading.n);
         } else {
-            self.shading.n = self.shading.n.face_forward(self.n);
+            self.shading.n = self.shading.n.face_forward(&self.n);
         }
 
         // Initialize _shading_ partial derivative values
@@ -320,11 +328,11 @@ impl SurfaceInteraction {
                 return area.l(self, w);
             }
         }
-        Spectrum::new(0.0);
+        Spectrum::new(0.0)
     }
 
     pub fn computer_scattering_functions(
-        &self,
+        &mut self,
         ray: &Ray,
         arena: &mut Obstack,
         allow_multiple_lobes: bool,
@@ -332,7 +340,7 @@ impl SurfaceInteraction {
     ) {
         self.compute_differentials(ray);
         if let Some(primitive) = self.primitive {
-            primitive.computer_scattering_functions(self, arena, mode, allow_multiple_lobes);
+            primitive.compute_scattering_function(arena, self, mode, allow_multiple_lobes);
         }
     }
 
@@ -345,7 +353,7 @@ impl SurfaceInteraction {
 
             // Compute auxiliary intersection points with plane
             let d = dot_normal_vec(&self.n, &Vector3f::new(self.p.x, self.p.y, self.p.z));
-            let tx = -(dot_normal_vec(&self.n, &rdiff.rx_origin) - d) / dot_normal_vec(&self.n, &rdiff.rx_direction);
+            let tx = -(dot_normal_vec(&self.n, &Vector3f::from(rdiff.rx_origin)) - d) / dot_normal_vec(&self.n, &rdiff.rx_direction);
             if !tx.is_finite() {
                 let mut dudx = self.dudx.write().unwrap();
                 *dudx = 0.0;
@@ -361,7 +369,7 @@ impl SurfaceInteraction {
                 *dpdy = Vector3f::default();
             }
             let px = rdiff.rx_origin + tx * rdiff.rx_direction;
-            let ty: Float = -(dot_normal_vec(&self.n, &rdiff.ry_origin) - d) / dot_normal_vec(&self.n, &rdiff.ry_direction);
+            let ty: Float = -(dot_normal_vec(&self.n, &Vector3f::from(rdiff.ry_origin)) - d) / dot_normal_vec(&self.n, &rdiff.ry_direction);
             if !ty.is_finite() {
                 let mut dudx = self.dudx.write().unwrap();
                 *dudx = 0.0;
@@ -383,7 +391,7 @@ impl SurfaceInteraction {
             // Compute $(u,v)$ offsets at auxiliary points
 
             // Choose two dimensions to use for ray offset computation
-            let dim: [usize] = if self.n.x.abs() > self.n.y.abs() && self.n.x.abs() > self.n.z.abs() {
+            let dim: [usize; 2] = if self.n.x.abs() > self.n.y.abs() && self.n.x.abs() > self.n.z.abs() {
                 [1, 2]
             } else if self.n.y.abs() > self.n.z.abs() {
                 [0, 2]
@@ -396,15 +404,23 @@ impl SurfaceInteraction {
                 [self.dpdu[dim[0]], self.dpdv[dim[0]]],
                 [self.dpdu[dim[1]], self.dpdv[dim[1]]]
             ];
-            let bx = [px[dim[0]] - self.p[dim[0]], px[dim[1]] - self.p[dim[1]]];
-            let by = [py[dim[0]] - self.p[dim[0]], py[dim[1]] - self.p[dim[1]]];
-            if !solve_linear_system2x2(a, bx, &mut self.dudx, &mut self.dvdx) {
-                self.dudx = 0.0;
-                self.dvdx = 0.0;
+            let bx = [px[dim[0] as u8] - self.p[dim[0] as u8], px[dim[1] as u8] - self.p[dim[1] as u8]];
+            let by = [py[dim[0] as u8] - self.p[dim[0] as u8], py[dim[1] as u8] - self.p[dim[1] as u8]];
+            { // so mutex write guard gets dropped straight away
+                let mut dudx = self.dudx.write().unwrap();
+                let mut dvdx = self.dvdx.write().unwrap();
+                if !solve_linear_system2x2(a, bx, &mut dudx, &mut dvdx) {
+                    *dudx = 0.0;
+                    *dvdx = 0.0;
+                }
             }
-            if !solve_linear_system2x2(a, by, &mut self.dudy, &mut self.dvdy) {
-                self.dudy = 0.0;
-                self.dvdy = 0.0;
+            { // so mutex write guard gets dropped straight away
+                let mut dudy = self.dudy.write().unwrap();
+                let mut dvdy = self.dvdy.write().unwrap();
+                if !solve_linear_system2x2(a, by, &mut dudy, &mut dvdy) {
+                    *dudy = 0.0;
+                    *dvdy = 0.0;
+                }
             }
         } else {
             let mut dudx = self.dudx.write().unwrap();
@@ -446,5 +462,21 @@ impl Interaction for SurfaceInteraction {
 
     fn get_medium_interface(&self) -> Option<Arc<MediumInterface>> {
         self.medium_interface
+    }
+}
+
+impl Clone for SurfaceInteraction {
+    fn clone(&self) -> Self {
+        SurfaceInteraction {
+            shape: self.shape.clone(),
+            primitive: self.primitive.clone(),
+            dpdx: RwLock::new(*self.dpdx.read().unwrap()),
+            dpdy: RwLock::new(*self.dpdy.read().unwrap()),
+            dudx: RwLock::new(*self.dudx.read().unwrap()),
+            dudy: RwLock::new(*self.dudy.read().unwrap()),
+            dvdx: RwLock::new(*self.dvdx.read().unwrap()),
+            dvdy: RwLock::new(*self.dvdy.read().unwrap()),
+            ..*self
+        }
     }
 }

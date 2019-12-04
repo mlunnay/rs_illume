@@ -1,8 +1,8 @@
 use super::pbrt::Float;
 use super::geometry::{Bounding3, Ray};
-use super::surface_interaction::SurfaceInteraction;
+use super::interaction::SurfaceInteraction;
 use super::material::{Material, TransportMode};
-use super::light::Light;
+use super::light::AreaLight;
 use std::sync::Arc;
 use obstack::Obstack;
 
@@ -10,7 +10,7 @@ pub trait Primitive: Send + Sync {
     fn world_bound(&self) -> Box<dyn Bounding3<Float>>;
     fn intersect(&self, ray: &Ray) -> Option<SurfaceInteraction>;
     fn intersect_p(&self, ray: &Ray) -> bool;
-    fn get_area_light(&self) -> Option<Arc<dyn Light>>;
+    fn get_area_light(&self) -> Option<Arc<dyn AreaLight>>;
     fn get_material(&self) -> Option<Arc<dyn Material>>;
     fn compute_scattering_function(&self, arena: &Obstack, isect: &mut SurfaceInteraction, mode: TransportMode, allow_multiple_lobes: bool) {
         if let Some(material) = self.get_material() {

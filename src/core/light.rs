@@ -66,7 +66,7 @@ pub trait Light {
 }
 
 pub trait AreaLight: Light {
-    fn l(&self, intr: Box<dyn Interaction>, w: &Vector3f) -> Spectrum;
+    fn l(&self, intr: &dyn Interaction, w: &Vector3f) -> Spectrum;
 }
 
 pub struct VisibilityTester {

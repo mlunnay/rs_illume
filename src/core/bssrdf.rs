@@ -49,6 +49,7 @@ pub trait SeparableBSSRDFProvider {
 }
 
 /// Inner implementation of the SeparableBSSRDF class from C++.
+#[derive(Clone)]
 pub struct SeparableBSSRDFImplementation<'a> {
     po: &'a SurfaceInteraction,
     eta: Float,
@@ -108,6 +109,7 @@ impl<'a> SeparableBSSRDFImplementation<'a> {
         let sp = self.sample_sp(provider, scene, u1, u2, arena, si, pdf);
         if !sp.is_black() {
             // Initialize material model at sampled surface interaction
+            // TODO: sort out area issues
             let bsdf = arena.push_copy(BSDF::new(si, 1.0));
             bsdf.add(arena.push_copy(SeparableBSSRDFAdapter::new(self, self.mode, self.eta)));
             si.bsdf = bsdf;
@@ -192,7 +194,7 @@ impl<'a> SeparableBSSRDFImplementation<'a> {
                 base.n = si.n;
                 base.medium_interface = si.medium_interface.clone();
                 // Append admissible intersection to _IntersectionChain_
-                if let Some(primitive) = si.privitive {
+                if let Some(primitive) = si.primitive {
                     if let Some(material) = primitive.get_material() {
                         if Arc::ptr_eq(&self.material, &material) {
                             chain.push(si);
@@ -252,7 +254,7 @@ impl<'a> SeparableBSSRDFImplementation<'a> {
     }
 }
 
-
+#[derive(Clone)]
 pub struct TabulatedBSSRDF<'a> {
     inner: SeparableBSSRDFImplementation<'a>,
     table: Arc<BSSRDFTable>,
