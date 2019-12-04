@@ -19,8 +19,7 @@ impl LightFlags {
 }
 
 pub trait Light {
-    const flags: u8;
-
+    fn get_flags(&self) -> u8;
     fn get_n_samples(&self) -> usize;
     fn get_medium_interface(&self) -> Arc<MediumInterface>;
 

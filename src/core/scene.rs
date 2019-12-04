@@ -28,8 +28,8 @@ impl Scene {
             infinite_lights: Vec::new()
         };
         for light in scene.lights {
-            light.preprocess(scene);
-            if light.flags & LightFlags::Infinite != 0 {
+            light.preprocess(&scene);
+            if light.get_flags() & LightFlags::Infinite != 0 {
                 scene.infinite_lights.push(light.clone());
             }
         }
