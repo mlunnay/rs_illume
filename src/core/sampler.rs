@@ -19,7 +19,7 @@ pub trait Sampler {
 
     fn get_camera_sample(&self, p_raster: &Point2i) -> CameraSample;
 
-    fn clone_with_seed(&self, seed: u64) -> Box<Self>;
+    fn clone_with_seed(&self, seed: u64) -> Box<dyn Sampler>;
 
     fn start_next_sample(&self) -> bool;
 
