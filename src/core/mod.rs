@@ -9,7 +9,6 @@ pub mod matrix;
 pub mod animated_transform;
 pub mod interval;
 pub mod interaction;
-pub mod surface_interaction;
 pub mod shape;
 pub mod primitive;
 pub mod low_discrepancy;
