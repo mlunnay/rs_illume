@@ -1,7 +1,7 @@
 use super::pbrt::{Float, Spectrum, consts::{PI, INV_4_PI}};
 use super::profiler::Profiler;
-use super::interaction::{SurfaceInteraction, SimpleInteraction};
-use super::geometry::{Vector3f, Point2f, Normal3f, dot_normal_vec, dot_vec_normal};
+use super::interaction::{Interaction, SurfaceInteraction, SimpleInteraction};
+use super::geometry::{Vector3f, Point2f, Normal3f, dot_vec_normal};
 use super::scene::Scene;
 use super::material::{Material, TransportMode};
 use super::reflection::{fr_dielectric, cos_theta, BSDF, BxDF, BxDFType};
@@ -11,10 +11,11 @@ use obstack::Obstack;
 use std::sync::Arc;
 use std::fmt;
 use rayon::prelude::*;
+use num::Float as NumFloat;
 
 
 pub trait BSSRDF {
-    fn s(&self, pi: SurfaceInteraction, wi: &Vector3f) -> Spectrum;
+    fn s(&self, pi: &SurfaceInteraction, wi: &Vector3f) -> Spectrum;
     fn sample_s(
         &self,
         scene: &Scene,
@@ -66,7 +67,7 @@ impl<'a> SeparableBSSRDFImplementation<'a> {
     ) -> Self {
         let ns = po.shading.n;
         let ss = po.shading.dpdu.normalize();
-        let ts = ns.cross(&ss);
+        let ts = Vector3f::from(ns).cross(&ss);
         Self{
             po,
             eta,
@@ -86,7 +87,7 @@ impl<'a> SeparableBSSRDFImplementation<'a> {
 
     pub fn sw(&self, w: &Vector3f) -> Spectrum {
         let c = 1.0 - 2.0 * fresnel_moment1(1.0 / self.eta);
-        (1.0 - fr_dielectric(cos_theta(w), 1.0, self.eta)) / (c * PI)
+        Spectrum::new((1.0 - fr_dielectric(cos_theta(w), 1.0, self.eta)) / (c * PI))
     }
 
     pub fn sp(&self, provider: &impl SeparableBSSRDFProvider, pi: &SurfaceInteraction) -> Spectrum {
@@ -95,6 +96,7 @@ impl<'a> SeparableBSSRDFImplementation<'a> {
 
     pub fn sample_s(
         &self,
+        provider: &impl SeparableBSSRDFProvider,
         scene: &Scene,
         u1: Float,
         u2: Point2f,
@@ -103,7 +105,7 @@ impl<'a> SeparableBSSRDFImplementation<'a> {
         pdf: &mut Float
     ) -> Spectrum {
         let _profile = Profiler::instance().profile("BSSRDF::sample_s()");
-        let sp = self.sample_sp(scene, u1, u2, arena, si, pdf);
+        let sp = self.sample_sp(provider, scene, u1, u2, arena, si, pdf);
         if !sp.is_black() {
             // Initialize material model at sampled surface interaction
             let bsdf = arena.push_copy(BSDF::new(si, 1.0));
@@ -178,7 +180,7 @@ impl<'a> SeparableBSSRDFImplementation<'a> {
         // Accumulate chain of intersections along ray
         let mut n_found = 0_usize;
         loop {
-            let r = base.spawn_ray_to(&p_target);
+            let r = base.spawn_ray_to_point(&p_target);
             if r.d == Vector3f::default() {
                 break;
             }
@@ -211,8 +213,8 @@ impl<'a> SeparableBSSRDFImplementation<'a> {
         *si = chain[selected].clone();
 
         // Compute sample PDF and return the spatial BSSRDF term $\Sp$
-        *pdf = self.pdf_sp(&*si) / n_found as Float;
-        self.sp(&*si)
+        *pdf = self.pdf_sp(provider, &*si) / n_found as Float;
+        self.sp(provider, &*si)
     }
 
     pub fn pdf_sp(&self, provider: &impl SeparableBSSRDFProvider, si: &SurfaceInteraction) -> Float {
@@ -222,7 +224,7 @@ impl<'a> SeparableBSSRDFImplementation<'a> {
         let d_local = Vector3f{
             x: self.ss.dot(&d),
             y: self.ts.dot(&d),
-            z: dot_normal_vec(&self.ns, &si.n)
+            z: self.ns.dot(&si.n)
         };
         let n_local = Normal3f{
             x: dot_vec_normal(&self.ss, &si.n),
@@ -232,9 +234,9 @@ impl<'a> SeparableBSSRDFImplementation<'a> {
 
         // Compute BSSRDF profile radius under projection along each axis
         let r_proj: [Float; 3] = [
-            (d_local.y * d_local.y + d_local.z * d_local.z).sqrt,
-            (d_local.z * d_local.z + d_local.x * d_local.x).sqrt,
-            (d_local.x * d_local.x + d_local.y * d_local.y).sqrt,
+            (d_local.y * d_local.y + d_local.z * d_local.z).sqrt(),
+            (d_local.z * d_local.z + d_local.x * d_local.x).sqrt(),
+            (d_local.x * d_local.x + d_local.y * d_local.y).sqrt(),
         ];
 
         // Return combined probability from all BSSRDF sampling strategies
@@ -243,7 +245,7 @@ impl<'a> SeparableBSSRDFImplementation<'a> {
         let ch_prob = 1.0 / Spectrum::n_samples as Float;
         for axis in 0..3 {
             for ch in 0..Spectrum::n_samples {
-                pdf += provider.pdf_sr(ch, r_proj[axis]) * n_local[axis].abs() * ch_prob * axis_prob[axis];
+                pdf += provider.pdf_sr(ch, r_proj[axis]) * n_local[axis as u8].abs() * ch_prob * axis_prob[axis];
             }
         }
         pdf
@@ -282,7 +284,7 @@ impl<'a> TabulatedBSSRDF<'a> {
     }
 }
 
-impl<'a> SeparableBSSRDFProvider<'a> for TabulatedBSSRDF<'a> {
+impl<'a> SeparableBSSRDFProvider for TabulatedBSSRDF<'a> {
     fn sr(&self, r: Float) -> Spectrum {
         let mut sr = Spectrum::new(0.0);
         for ch in 0..Spectrum::n_samples {
@@ -316,7 +318,7 @@ impl<'a> SeparableBSSRDFProvider<'a> for TabulatedBSSRDF<'a> {
             }
         }
 
-        sr.clamp()
+        sr.clamp(0.0, Float::infinity())
     }
 
     fn sample_sr(&self, ch: usize, u: Float) -> Float {
@@ -325,7 +327,7 @@ impl<'a> SeparableBSSRDFProvider<'a> for TabulatedBSSRDF<'a> {
         }
         sample_catmull_rom_2d(&self.table.rho_samples, &self.table.radius_samples,
             &self.table.profile, &self.table.profile_cdf, self.rho[ch], u, None, None) /
-            self.sigma_t[ch];
+            self.sigma_t[ch]
     }
 
     fn pdf_sr(&self, ch: usize, r: Float) -> Float {
@@ -368,8 +370,8 @@ impl<'a> SeparableBSSRDFProvider<'a> for TabulatedBSSRDF<'a> {
 }
 
 impl<'a> BSSRDF for TabulatedBSSRDF<'a> {
-    fn s(&self, pi: SurfaceInteraction, wi: &Vector3f) -> Spectrum {
-        self.inner.s(pi, wi)
+    fn s(&self, pi: &SurfaceInteraction, wi: &Vector3f) -> Spectrum {
+        self.inner.s(self, pi, wi)
     }
 
     fn sample_s(
@@ -381,7 +383,7 @@ impl<'a> BSSRDF for TabulatedBSSRDF<'a> {
         si: &mut SurfaceInteraction,
         pdf: &mut Float
     ) -> Spectrum {
-        self.inner.sample_s(scene, u1, u2, arena, si, pdf)
+        self.inner.sample_s(self, scene, u1, u2, arena, si, pdf)
     }
 }
 
@@ -420,13 +422,19 @@ T: SeparableBSSRDF
     eta: Float
 }
 
-impl<'a, T> SeparableBSSRDFAdapter<'a, T> {
+impl<'a, T> SeparableBSSRDFAdapter<'a, T>
+where
+T: SeparableBSSRDF
+{
     pub fn new(bssrdf: &'a T, mode: TransportMode, eta: Float) -> Self {
         Self { bssrdf, mode, eta }
     }
 }
 
-impl<'a, T> BxDF for SeparableBSSRDFAdapter<'a, T> {
+impl<'a, T> BxDF for SeparableBSSRDFAdapter<'a, T>
+where
+T: SeparableBSSRDF
+{
     fn get_type(&self) -> u8 {
         BxDFType::BSDF_REFLECTION | BxDFType::BSDF_DIFFUSE
     }
@@ -446,13 +454,16 @@ impl<'a, T> BxDF for SeparableBSSRDFAdapter<'a, T> {
     }
 }
 
-impl<'a, T> std::fmt::Display for SeparableBSSRDFAdapter<'a, T> {
+impl<'a, T> fmt::Display for SeparableBSSRDFAdapter<'a, T>
+where
+T: SeparableBSSRDF
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[ SeparableBSSRDFAdapter ]")
     }
 }
 
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct BSSRDFTable {
     pub rho_samples: Vec<Float>,
     pub radius_samples: Vec<Float>,
@@ -539,7 +550,7 @@ pub fn beam_diffusion_ss(sigma_s: Float, sigma_a: Float, g: Float, eta: Float, r
     let c_e = 0.5 * (1.0 - 3.0 * fm2);
     for i in 0..n_samples {
         // Sample real point source depth $\depthreal$
-        let zr = -(1.0 - (i + 0.5) / n_samples).ln() / sigmap_t;
+        let zr = -(1.0 - (i as Float + 0.5) / n_samples as Float).ln() / sigmap_t;
 
         // Evaluate dipole integrand $E_{\roman{d}}$ at $\depthreal$ and add to
         // _Ed_
@@ -563,7 +574,7 @@ pub fn beam_diffusion_ss(sigma_s: Float, sigma_a: Float, g: Float, eta: Float, r
         let kappa = 1.0 - (-2.0 * sigmap_t * (dr + zr)).exp();
         ed += kappa * rhop * rhop * e;
     }
-    ed / n_samples
+    ed / n_samples as Float
 }
 
 pub fn beam_diffusion_ms(sigma_s: Float, sigma_a: Float, g: Float, eta: Float, r: Float) -> Float {
@@ -575,7 +586,7 @@ pub fn beam_diffusion_ms(sigma_s: Float, sigma_a: Float, g: Float, eta: Float, r
     const n_samples: usize = 100;
     for i in 0..n_samples {
         // Evaluate single scattering integrand and add to _Ess_
-        let ti = t_crit - (1.0 - (i + 0.5) / n_samples).ln() / sigma_t;
+        let ti = t_crit - (1.0 - (i as Float + 0.5) / n_samples as Float).ln() / sigma_t;
 
         // Determine length $d$ of connecting segment and $\cos\theta_\roman{o}$
         let d = (r * r + ti * ti).sqrt();
@@ -586,7 +597,7 @@ pub fn beam_diffusion_ms(sigma_s: Float, sigma_a: Float, g: Float, eta: Float, r
                phase_hg(cos_theta_o, g) * (1.0 - fr_dielectric(-cos_theta_o, 1.0, eta)) *
                cos_theta_o.abs();
     }
-    ess / n_samples
+    ess / n_samples as Float
 }
 
 pub fn compute_beam_diffusion_bssrdf(g: Float, eta: Float, t: &mut BSSRDFTable) {
@@ -600,14 +611,14 @@ pub fn compute_beam_diffusion_bssrdf(g: Float, eta: Float, t: &mut BSSRDFTable) 
     // Choose albedo values of the diffusion profile discretization
     for i in 0..t.rho_samples.len() {
         t.rho_samples[i] =
-            (1.0 - (-8.0 * i / (t.rho_samples.len() - 1.0) as Float).exp()) /
+            (1.0 - (-8.0 * i as Float / (t.rho_samples.len() - 1) as Float).exp()) /
             (1.0 - (-8.0).exp());
     }
     (0..t.rho_samples.len()).into_par_iter().for_each(|i| {
         // Compute the diffusion profile for the _i_th albedo sample
 
         // Compute scattering profile for chosen albedo $\rho$
-        for j in t.radius_samples.len() {
+        for j in 0..t.radius_samples.len() {
             let rho = t.rho_samples[i];
             let r = t.radius_samples[j];
             t.profile[i * t.radius_samples.len() + j] =
@@ -618,9 +629,9 @@ pub fn compute_beam_diffusion_bssrdf(g: Float, eta: Float, t: &mut BSSRDFTable) 
         // Compute effective albedo $\rho_{\roman{eff}}$ and CDF for importance
         // sampling
         t.rho_eff[i] =
-            integrate_catmull_rom(&t.radius_samples,
-                                &t.profile[i * t.radius_samples.len()],
-                                &t.profile_cdf[i * t.radius_samples.len()]);
+            integrate_catmull_rom(&t.radius_samples[0..i * t.radius_samples.len()],
+                                &t.profile,
+                                &mut t.profile_cdf);
     });
 }
 

@@ -207,11 +207,11 @@ impl Interaction for MediumInteraction {
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Shading {
-    n: Normal3f,
-    dpdu: Vector3f,
-    dpdv: Vector3f,
-    dndu: Normal3f,
-    dndv: Normal3f
+    pub n: Normal3f,
+    pub dpdu: Vector3f,
+    pub dpdv: Vector3f,
+    pub dndu: Normal3f,
+    pub dndv: Normal3f
 }
 
 #[derive(Default, Clone)]

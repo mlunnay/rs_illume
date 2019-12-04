@@ -1,6 +1,6 @@
 use super::pbrt::{Float, Spectrum, lerp, consts::{PI, INV_PI}};
 use super::geometry::{Vector3f, Normal3f, Point2f, dot_vec_normal};
-use super::surface_interaction::SurfaceInteraction;
+use super::interaction::SurfaceInteraction;
 use super::profiler::Profiler;
 use super::rng::ONE_MINUS_EPSILON;
 use super::sampling::{uniform_sample_hemisphere, uniform_hemisphere_pdf, cosine_sample_hemisphere};

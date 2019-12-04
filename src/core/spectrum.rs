@@ -77,7 +77,7 @@ macro_rules! CoefficientSpectrumMethods {
             *self * (1.0 - t) + *s2 * t
         }
 
-        const n_samples: usize = $n_spectrum_samples;
+        pub const n_samples: usize = $n_spectrum_samples;
     };
 }
 
