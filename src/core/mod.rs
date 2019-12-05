@@ -30,3 +30,7 @@ pub mod interpolation;
 pub mod bssrdf;
 pub mod scene;
 pub mod sampler;
+pub mod film;
+pub mod parallel;
+pub mod filter;
+pub mod imageio;

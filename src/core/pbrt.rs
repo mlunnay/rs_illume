@@ -75,6 +75,23 @@ pub fn float_to_bits(f: f32) -> u32 {
 
 /// Use **unsafe**
 /// [std::mem::transmute_copy][transmute_copy]
+/// to convert *f32* to *u32*.
+///
+/// [transmute_copy]: https://doc.rust-lang.org/std/mem/fn.transmute_copy.html
+pub fn double_to_bits(f: f64) -> u64 {
+    // uint64_t ui;
+    // memcpy(&ui, &f, sizeof(double));
+    // return ui;
+    let rui: u64;
+    unsafe {
+        let ui: u64 = std::mem::transmute_copy(&f);
+        rui = ui;
+    }
+    rui
+}
+
+/// Use **unsafe**
+/// [std::mem::transmute_copy][transmute_copy]
 /// to convert *u32* to *f32*.
 ///
 /// [transmute_copy]: https://doc.rust-lang.org/std/mem/fn.transmute_copy.html
@@ -85,6 +102,23 @@ pub fn bits_to_float(ui: u32) -> f32 {
     let rf: f32;
     unsafe {
         let f: f32 = std::mem::transmute_copy(&ui);
+        rf = f;
+    }
+    rf
+}
+
+/// Use **unsafe**
+/// [std::mem::transmute_copy][transmute_copy]
+/// to convert *u32* to *f32*.
+///
+/// [transmute_copy]: https://doc.rust-lang.org/std/mem/fn.transmute_copy.html
+pub fn bits_to_double(ui: u64) -> f64 {
+    // float f;
+    // memcpy(&f, &ui, sizeof(uint32_t));
+    // return f;
+    let rf: f64;
+    unsafe {
+        let f: f64 = std::mem::transmute_copy(&ui);
         rf = f;
     }
     rf
