@@ -1,6 +1,6 @@
 use super::pbrt::Float;
 use super::geometry::{Bounding3, Vector3f, Ray, Point2f, Point3f, Normal3f, dot_normal_vec};
-use super::surface_interaction::SurfaceInteraction;
+use super::interaction::SurfaceInteraction;
 use super::interaction::Interaction;
 use super::low_discrepancy::radical_inverse;
 
@@ -86,14 +86,14 @@ pub trait Shape: Send + Sync {
     /// integration; the nSamples parameter determines how many samples are
     /// used in this case.
     fn solid_angle(&self, p: &Point3f, n_samples: i32) -> Float {
-        let iref = SurfaceInteraction::new(&p,
-            &Vector3f::default(),
-            &Point2f::default(),
-            &Vector3f::new(0.0, 0.0, 1.0),
-            &Vector3f::default(),
-            &Vector3f::default(),
-            &Normal3f::default(),
-            &Normal3f::default(),
+        let iref = SurfaceInteraction::new(*p,
+            Vector3f::default(),
+            Point2f::default(),
+            Vector3f::new(0.0, 0.0, 1.0),
+            Vector3f::default(),
+            Vector3f::default(),
+            Normal3f::default(),
+            Normal3f::default(),
             0.0,
             None,
             0);

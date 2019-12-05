@@ -1,9 +1,9 @@
 use super::geometry::{Vector3f, Normal3f, Point3f, Ray, Bounding3};
 use super::matrix::Matrix4x4;
 use super::pbrt::{Float, radians, gamma};
-use super::surface_interaction::SurfaceInteraction;
+use super::interaction::SurfaceInteraction;
 use std::ops::{Mul, Add};
-use std::sync::{Arc, RwLock};
+use std::sync::RwLock;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Transform {
@@ -508,12 +508,12 @@ impl Transform {
         ret.shading.dpdv = self.transform_vector(&si.shading.dpdv);
         ret.shading.dndu = self.transform_normal(&si.shading.dndu);
         ret.shading.dndv = self.transform_normal(&si.shading.dndv);
-        ret.dudx = si.dudx.clone();
-        ret.dvdx = si.dvdx.clone();
-        ret.dudy = si.dudy.clone();
-        ret.dvdy = si.dvdy.clone();
-        ret.dpdx = Arc::new(RwLock::new(self.transform_vector(&si.dpdx.read().unwrap())));
-        ret.dpdy = Arc::new(RwLock::new(self.transform_vector(&si.dpdy.read().unwrap())));
+        ret.dudx = RwLock::new(*si.dudx.read().unwrap());
+        ret.dvdx = RwLock::new(*si.dvdx.read().unwrap());
+        ret.dudy = RwLock::new(*si.dudy.read().unwrap());
+        ret.dvdy = RwLock::new(*si.dvdy.read().unwrap());
+        ret.dpdx = RwLock::new(self.transform_vector(&si.dpdx.read().unwrap()));
+        ret.dpdy = RwLock::new(self.transform_vector(&si.dpdy.read().unwrap()));
         ret.bsdf = si.bsdf;
         ret.bssrdf = si.bssrdf;
         ret.primitive = si.primitive;
@@ -588,7 +588,7 @@ pub fn solve_linear_system2x2(a: [[Float; 2]; 2], b: [Float; 2], x0: &mut Float,
     }
     *x0 = (a[1][1] * b[0] - a[0][1] * b[1]) / det;
     *x1 = (a[0][0] * b[1] - a[1][0] * b[0]) / det;
-    if x0.is_nan() || *x1.is_nan() {
+    if x0.is_nan() || x1.is_nan() {
         return false;
     }
     true
