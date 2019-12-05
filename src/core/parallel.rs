@@ -31,6 +31,10 @@ impl AtomicFloat {
         bits_to_float(self.bits.load(Ordering::SeqCst))
     }
 
+    pub fn store(&self, v: Float) {
+        self.bits.store(float_to_bits(v), Ordering::SeqCst);
+    }
+
     pub fn add(&self, v: Float) {
         let mut old_bits: u32 = self.bits.load(Ordering::Relaxed);
         loop {
