@@ -72,8 +72,8 @@ impl Film {
         for y in 0..FILTER_TABLE_WIDTH {
             for x in 0..FILTER_TABLE_WIDTH {
                 let p = Point2f {
-                    x: (x as Float + 0.5) * filter.radius.x / FILTER_TABLE_WIDTH as Float,
-                    y: (y as Float + 0.5) * filter.radius.y / FILTER_TABLE_WIDTH as Float
+                    x: (x as Float + 0.5) * filter.get_radius().x / FILTER_TABLE_WIDTH as Float,
+                    y: (y as Float + 0.5) * filter.get_radius().y / FILTER_TABLE_WIDTH as Float
                 };
                 filter_table[offset] = filter.evaluate(&p);
                 offset += 1;
@@ -95,8 +95,8 @@ impl Film {
 
     pub fn get_sample_bounds(&self) -> Bounds2i {
         Bounds2i::new(
-            (self.cropped_pixel_bounds.min as Float + Point2f::new(0.5, 0.5) - self.filter.radius).floor() as i32,
-            (self.cropped_pixel_bounds.max as Float - Point2f::new(0.5, 0.5) + self.filter.radius).ceil() as i32
+            (self.cropped_pixel_bounds.min.cast::<Float>() + Point2f::new(0.5, 0.5) - Point2f::from(self.filter.get_radius())).floor() as i32,
+            (self.cropped_pixel_bounds.max.cast::<Float>() - Point2f::new(0.5, 0.5) + Point2f::from(self.filter.get_radius())).ceil() as i32
         )
     }
 
@@ -117,11 +117,11 @@ impl Film {
             min: Point2f{ x: sample_bounds.min.x as Float, y: sample_bounds.min.y as Float},
             max: Point2f{ x: sample_bounds.max.x as Float, y: sample_bounds.max.y as Float},
         };
-        let p0 = (float_bounds.min - half_pixel - self.filter.radius).ceil().cast();
-        let p1 = ((float_bounds.max - half_pixel + self.filter.radius).floor() + Point2f::new(1.0, 1.0)).cast();
+        let p0 = (float_bounds.min - half_pixel - self.filter.get_radius()).ceil().cast();
+        let p1 = ((float_bounds.max - half_pixel + self.filter.get_radius()).floor() + Point2f::new(1.0, 1.0)).cast();
 
         let tile_pixel_bounds = Bounds2i::new(p0, p1).intersect(&self.cropped_pixel_bounds);
-        FilmTile::new(tile_pixel_bounds, self.filter.radius, &self.filter_table, self.max_sample_luminance)
+        FilmTile::new(tile_pixel_bounds, self.filter.get_radius(), &self.filter_table, self.max_sample_luminance)
     }
 
     pub fn merge_film_tile(&mut self, tile: &FilmTile) {
