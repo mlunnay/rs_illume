@@ -1,4 +1,5 @@
 use std::ops::*;
+use std::fmt;
 use num;
 use super::super::pbrt::Float;
 use super::Vector2;
@@ -367,5 +368,14 @@ U: num::NumCast
             x: num::cast(v.x).unwrap(),
             y: num::cast(v.y).unwrap()
         }
+    }
+}
+
+impl<T> fmt::Display for Point2<T>
+where
+T: fmt::Display
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[ {}, {} ]", self.x, self.y)
     }
 }

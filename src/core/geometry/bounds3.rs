@@ -4,6 +4,7 @@ use std::ops::{Index, IndexMut, Sub, Add, Div, DivAssign, Mul};
 use std::default::Default;
 use crate::core::pbrt::{lerp, Float, gamma};
 use crate::core::transform::Transform;
+use std::fmt;
 
 pub type Bounds3i = Bounds3<i32>;
 pub type Bounds3f = Bounds3<Float>;
@@ -152,7 +153,7 @@ impl<T> Bounds3<T> {
     }
 
     /// Test if a Point3 is inside this Bounds3, ignoring points on the upper boundary.
-    pub fn inside_exclusive(&self, p: Point3<T>) -> bool
+    pub fn inside_exclusive(&self, p: &Point3<T>) -> bool
     where
     T: PartialOrd
     {
@@ -161,7 +162,7 @@ impl<T> Bounds3<T> {
     }
 
     /// Linearly interpolates between the corners of the box by the given amount in each dimension.
-    pub fn lerp(&self, t: Point3<T>) -> Point3<T>
+    pub fn lerp(&self, t: &Point3<T>) -> Point3<T>
     where
     T: num::One + Copy + Add<Output = T> + Sub<Output = T>
     {
@@ -384,6 +385,15 @@ impl<T> IndexMut<u8> for Bounds3<T> {
             1 => &mut self.max,
             _ => panic!("Index out of range for Bounds3"),
         }
+    }
+}
+
+impl<T> fmt::Display for Bounds3<T>
+where
+T: fmt::Display
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[ {} - {} ]", self.min, self.max)
     }
 }
 

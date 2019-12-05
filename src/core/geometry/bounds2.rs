@@ -3,6 +3,7 @@ use num;
 use std::ops::{Index, IndexMut, Sub, Add, Div, DivAssign, Mul};
 use std::default::Default;
 use crate::core::pbrt::{lerp, Float};
+use std::fmt;
 
 pub type Bounds2i = Bounds2<i32>;
 pub type Bounds2f = Bounds2<Float>;
@@ -284,5 +285,14 @@ impl<'a> IntoIterator for &'a Bounds2i {
             p: Point2i{x: self.min.x - 1, y: self.min.y},
             bounds: self
         }
+    }
+}
+
+impl<T> fmt::Display for Bounds2<T>
+where
+T: fmt::Display
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[ {} - {} ]", self.min, self.max)
     }
 }

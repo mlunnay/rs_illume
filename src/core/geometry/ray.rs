@@ -3,6 +3,7 @@ use super::{Vector3f, Point3f, Normal3f};
 use crate::core::medium::Medium;
 use std::sync::Arc;
 use num;
+use std::fmt;
 
 /// A Ray.
 #[derive(Clone)]
@@ -56,6 +57,12 @@ impl Default for Ray {
             medium: None,
             differential: None
         }
+    }
+}
+
+impl fmt::Display for Ray {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[o={}, d={}, t_max={}, time={}]", self.o, self.d, self.t_max, self.time)
     }
 }
 

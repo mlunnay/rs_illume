@@ -1,4 +1,5 @@
 use std::ops::*;
+use std::fmt;
 use num;
 use super::super::pbrt::Float;
 use super::Point3;
@@ -524,4 +525,13 @@ pub fn coordinate_system(v1: &Vector3<Float>, v2: &mut Vector3<Float>, v3: &mut 
         }
     }
     *v3 = v1.cross(&*v2);
+}
+
+impl<T> fmt::Display for Vector3<T>
+where
+T: fmt::Display
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[ {}, {}, {} ]", self.x, self.y, self.z)
+    }
 }

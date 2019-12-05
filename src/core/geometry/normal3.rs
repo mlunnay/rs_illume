@@ -1,4 +1,5 @@
 use std::ops::*;
+use std::fmt;
 use super::super::pbrt::Float;
 use super::Vector3;
 use num;
@@ -246,6 +247,15 @@ T: Copy + DivAssign
         self.x /= o;
         self.y /= o;
         self.z /= o;
+    }
+}
+
+impl<T> fmt::Display for Normal3<T>
+where
+T: fmt::Display
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[ {}, {}, {} ]", self.x, self.y, self.z)
     }
 }
 
