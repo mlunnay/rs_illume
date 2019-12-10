@@ -84,6 +84,18 @@ pub trait Interaction {
             None => None
         }
     }
+
+    fn get_phase(&self) -> Option<Arc<dyn PhaseFunction>> {
+        None
+    }
+
+    fn get_bsdf(&self) -> Option<BSDF> {
+        None
+    }
+
+    fn get_shading(&self) -> Option<Shading> {
+        None
+    }
 }
 
 /// A Simple implementation of Interaction.
@@ -202,6 +214,10 @@ impl Interaction for MediumInteraction {
 
     fn get_medium_interface(&self) -> Option<Arc<MediumInterface>> {
         self.medium_interface
+    }
+
+    fn get_phase(&self) -> Option<Arc<dyn PhaseFunction>> {
+        self.phase
     }
 }
 
@@ -462,6 +478,14 @@ impl Interaction for SurfaceInteraction {
 
     fn get_medium_interface(&self) -> Option<Arc<MediumInterface>> {
         self.medium_interface
+    }
+
+    fn get_bsdf(&self) -> Option<BSDF> {
+        self.bsdf
+    }
+
+    fn get_shading(&self) -> Option<Shading> {
+        Some(self.shading)
     }
 }
 

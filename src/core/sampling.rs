@@ -72,7 +72,7 @@ impl Distribution1D {
     }
 
     /// Samples the CDF that surrounds the value u.
-    pub fn sample_descrete(&self, u: Float, pdf: Option<&mut Float>, u_remapped: Option<&mut Float>) -> usize {
+    pub fn sample_discrete(&self, u: Float, pdf: Option<&mut Float>, u_remapped: Option<&mut Float>) -> usize {
         // Find surrounding CDF segments and _offset_
         let offset = find_interval(self.cdf.len(), |i| self.cdf[i] <= u);
         if let Some(pdf) = pdf {

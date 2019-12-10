@@ -2,7 +2,7 @@ use super::pbrt::{Float, Spectrum};
 use super::geometry::{Point2f, Vector3f, Ray, Normal3f};
 use super::medium::MediumInterface;
 use super::transform::Transform;
-use super::interaction::{Interaction};
+use super::interaction::{Interaction, SimpleInteraction};
 use super::scene::Scene;
 use super::sampler::Sampler;
 use super::stats_accumulator::StatsAccumulator;
@@ -18,7 +18,7 @@ impl LightFlags {
     pub const Infinite: u8 = 8;
 }
 
-pub trait Light {
+pub trait Light: Send + Sync {
     fn get_flags(&self) -> u8;
     fn get_n_samples(&self) -> usize;
     fn get_medium_interface(&self) -> Arc<MediumInterface>;
@@ -115,6 +115,15 @@ impl VisibilityTester {
             }
         }
         tr
+    }
+}
+
+impl Default for VisibilityTester {
+    fn default() -> VisibilityTester {
+        VisibilityTester {
+            _p0: Box::new(SimpleInteraction::default()),
+            _p1: Box::new(SimpleInteraction::default())
+        }
     }
 }
 

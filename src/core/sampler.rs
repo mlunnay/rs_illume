@@ -4,7 +4,7 @@ use super::camera::CameraSample;
 use super::rng::Rng;
 use super::profiler::Profiler;
 
-pub trait Sampler {
+pub trait Sampler: Send + Sync {
     fn get_samples_per_pixel(&self) -> u64;
 
     fn start_pixel(&self, p: &Point2i);
@@ -16,6 +16,10 @@ pub trait Sampler {
     fn request_1d_array(&self, n: usize);
 
     fn request_2d_array(&self, n: usize);
+
+    fn get_1d_array(&self, n: usize) -> Option<&[Float]>;
+
+    fn get_2d_array(&self, n: usize) -> Option<&[Point2f]>;
 
     fn get_camera_sample(&self, p_raster: &Point2i) -> CameraSample;
 

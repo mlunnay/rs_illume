@@ -44,8 +44,8 @@ pub fn bump(d: Arc<dyn Texture<Float>>, si: &mut SurfaceInteraction) {
     si_eval.uv = si.uv + Vector2f::new(0.0, dv);
     si_eval.n = (Normal3f::from(si.shading.dpdu.cross(&si.shading.dpdv)) +
                          dv * si.dndv).normalize();
-    let v_displace = d.evaluate(si_eval);
-    let displace = d.evaluate(*si);
+    let v_displace = d.evaluate(&si_eval);
+    let displace = d.evaluate(si);
 
     // Compute bump-mapped differential geometry
     let dpdu = si.shading.dpdu +
@@ -54,6 +54,6 @@ pub fn bump(d: Arc<dyn Texture<Float>>, si: &mut SurfaceInteraction) {
     let dpdv = si.shading.dpdv +
                     (v_displace - displace) / dv * Vector3f::from(si.shading.n) +
                     displace * Vector3f::from(si.shading.dndv);
-    si.set_shading_geometry(dpdu, dpdv, &si.shading.dndu, &si.shading.dndv,
+    si.set_shading_geometry(&dpdu, &dpdv, &si.shading.dndu, &si.shading.dndv,
                            false);
 }

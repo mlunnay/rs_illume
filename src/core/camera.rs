@@ -5,9 +5,10 @@ use super::medium::Medium;
 use super::interaction::Interaction;
 use super::light::VisibilityTester;
 use super::film::Film;
+use std::fmt;
 use std::sync::Arc;
 
-pub trait Camera {
+pub trait Camera: Send + Sync {
     fn get_camera_to_world(&self) -> AnimatedTransform;
 
     fn get_shutter_open(&self) -> Float;
@@ -98,4 +99,10 @@ pub struct CameraSample {
     pub p_film: Point2f,
     pub p_lens: Point2f,
     pub time: Float
+}
+
+impl fmt::Display for CameraSample {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[ p_film: {}, p_lens: {}, time {} ]", self.p_film, self.p_lens, self.time)
+    }
 }

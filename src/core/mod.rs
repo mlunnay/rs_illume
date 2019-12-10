@@ -34,3 +34,5 @@ pub mod film;
 pub mod parallel;
 pub mod filter;
 pub mod imageio;
+pub mod integrator;
+pub mod progress_reporter;

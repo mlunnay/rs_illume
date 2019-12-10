@@ -283,7 +283,7 @@ impl<'a> FilmTile<'a> {
     }
 
     // sample_weight default = 1.0
-    pub fn add_sample(&self, p_film: &Point2f, l: Spectrum, sample_weight: Float) {
+    pub fn add_sample(&self, p_film: &Point2f, l: &Spectrum, sample_weight: Float) {
         let _profile = Profiler::instance().profile("Film::AddSample()");
         if l.y() > self.max_sample_luminance {
             l *= self.max_sample_luminance / l.y();
