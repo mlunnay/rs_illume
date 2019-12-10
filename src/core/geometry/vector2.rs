@@ -431,6 +431,15 @@ U: num::NumCast
     }
 }
 
+impl<T> From<T> for Vector2<T> {
+    fn from(v: T) -> Vector2<T> {
+        Vector2::<T>{
+            x: v,
+            y: v
+        }
+    }
+}
+
 impl<T> fmt::Display for Vector2<T>
 where
 T: fmt::Display

@@ -111,6 +111,16 @@ impl<T> From<Normal3<T>> for Vector3<T> {
     }
 }
 
+impl<T> From<T> for Normal3<T> {
+    fn from(v: T) -> Normal3<T> {
+        Normal3::<T>{
+            x: v,
+            y: v,
+            z: v
+        }
+    }
+}
+
 impl<T> Index<u8> for Normal3<T> {
     type Output = T;
     fn index(&self, index: u8) -> &T {

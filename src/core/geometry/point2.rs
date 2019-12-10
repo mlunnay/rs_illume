@@ -371,6 +371,15 @@ U: num::NumCast
     }
 }
 
+impl<T> From<T> for Point2<T> {
+    fn from(v: T) -> Point2<T> {
+        Point2::<T>{
+            x: v,
+            y: v
+        }
+    }
+}
+
 impl<T> fmt::Display for Point2<T>
 where
 T: fmt::Display

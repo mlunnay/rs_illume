@@ -505,6 +505,16 @@ U: num::NumCast
     }
 }
 
+impl<T> From<T> for Vector3<T> {
+    fn from(v: T) -> Vector3<T> {
+        Vector3::<T>{
+            x: v,
+            y: v,
+            z: v
+        }
+    }
+}
+
 /// Construct a local coordinate system given only a single 3D vector.
 /// Expects v1 to be normalized.
 pub fn coordinate_system(v1: &Vector3<Float>, v2: &mut Vector3<Float>, v3: &mut Vector3<Float>) {
