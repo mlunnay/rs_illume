@@ -36,3 +36,4 @@ pub mod filter;
 pub mod imageio;
 pub mod integrator;
 pub mod progress_reporter;
+pub mod options;
