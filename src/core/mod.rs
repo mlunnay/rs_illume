@@ -37,3 +37,5 @@ pub mod imageio;
 pub mod integrator;
 pub mod progress_reporter;
 pub mod options;
+pub mod memory;
+pub mod mipmap;

@@ -1,5 +1,6 @@
 use super::pbrt::{Float, lerp, find_interval};
 use std::ops::{Add, AddAssign, Sub, Div, DivAssign, Mul, MulAssign, Neg, Index, IndexMut};
+use num::Zero;
 
 lazy_static!{
     static ref SAMPLED_SPECTRUM_GLOBALS: SampledSpectrumGlobals = SampledSpectrumGlobals::new();
@@ -243,6 +244,12 @@ macro_rules! CoefficientSpectrumImpl {
                     }
                 }
                 true
+            }
+        }
+
+        impl Zero for $T {
+            fn zero() -> Self {
+                $T{ c: [0.0; $n_spectrum_samples] }
             }
         }
     };

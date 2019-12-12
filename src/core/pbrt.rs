@@ -1,5 +1,5 @@
 //! Type definitions and constants.
-use std::ops::{Sub, Add, Mul};
+use std::ops::{Sub, Add, Mul, BitAnd, Not, SubAssign, BitOrAssign, Shr, Div};
 use super::spectrum::*;
 
 #[cfg(feature = "sampled_spectrum")]
@@ -191,6 +191,20 @@ pub fn inverse_gamma_correct(value: Float) -> Float {
     }
 }
 
+/// A version of modulus where the result is positive for negative values
+#[inline]
+pub fn mod_t<T>(a: T, b: T) -> T
+where
+T: num::Zero + Copy + Div<Output=T> + Mul<Output=T> + Sub<Output=T> + PartialOrd
+{
+    let result = a - (a / b) * b;
+    if result < num::Zero::zero() {
+        result + b
+    } else {
+        result
+    }
+}
+
 #[inline]
 pub fn log2_int_u32(v: u32) -> i32 {
     31 - v.leading_zeros() as i32
@@ -199,6 +213,49 @@ pub fn log2_int_u32(v: u32) -> i32 {
 #[inline]
 pub fn log2_int_i32(v: i32) -> i32 {
     31 - v.leading_zeros() as i32
+}
+
+#[inline]
+pub fn is_power_of_2<T>(v: T) -> bool
+where
+T: BitAnd<Output=T> + Not<Output=T> + num::Zero + num::One + PartialOrd + Sub<Output=T>
+{
+    v > num::Zero::zero() && !(v & (v - num::One::one())) > num::Zero::zero()
+}
+
+pub fn round_up_pow2<T>(mut v: T) -> T
+where
+T: SubAssign + BitOrAssign + Add<Output=T> + Shr<Output=T> + num::NumCast
+{
+    v -= num::cast(1).unwrap();
+    v |= v >> num::cast(1).unwrap();
+    v |= v >> num::cast(2).unwrap();
+    v |= v >> num::cast(4).unwrap();
+    v |= v >> num::cast(8).unwrap();
+    v |= v >> num::cast(16).unwrap();
+    v + num::cast(1).unwrap()
+}
+
+/// Specialized version of round_up_pow2 for i32 to avoid casting and unwraps
+pub fn round_up_pow2_i32(v: i32) -> i32 {
+    v -= 1;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v + 1
+}
+
+/// Specialized version of round_up_pow2 for i32 to avoid casting and unwraps
+pub fn round_up_pow2_i64(v: i64) -> i64 {
+    v -= 1;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v + 1
 }
 
 pub fn find_interval<T>(size: usize, predicate: T) -> usize
