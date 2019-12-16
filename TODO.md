@@ -1,2 +1,3 @@
 # TODO
 - [ ] Look at using enum_dispatch see https://gitlab.com/antonok/enum_dispatch but would want to extend it to allow Box<T> for external trait implementers which is supported but would want to implement a generic generated in the macro that will make any implementation unknown at compile time into a Box<T> or use one of the known enum memeber.
+- [ ] Figure out how to build OpenExr and create OpenExr functionality in imageio.rs
