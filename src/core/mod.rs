@@ -40,3 +40,4 @@ pub mod options;
 pub mod memory;
 pub mod mipmap;
 pub mod floatfile;
+pub mod lightdistrib;
