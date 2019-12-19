@@ -41,3 +41,5 @@ pub mod memory;
 pub mod mipmap;
 pub mod floatfile;
 pub mod lightdistrib;
+pub mod paramset;
+pub mod fileutil;
