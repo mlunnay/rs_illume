@@ -1,6 +1,6 @@
 use crate::core::pbrt::{Float, gamma, consts::PI};
-use crate::core::geometry::{Bounding3, Vector3f, Ray, Point2f, Point3f, Normal3f, Bounds3f, Union, coordinate_system};
-use crate::core::surface_interaction::SurfaceInteraction;
+use crate::core::geometry::{Bounding3, Vector3f, Ray, Point2f, Point3f, Normal3f, Bounds3f, coordinate_system};
+use crate::core::interaction::SurfaceInteraction;
 use crate::core::interaction::{Interaction, SimpleInteraction};
 use crate::core::texture::Texture;
 use crate::core::transform::Transform;
@@ -120,7 +120,7 @@ impl Shape for Triangle {
         Box::new(Bounds3f::new(
             self.mesh.world_to_object.transform_point(&p0),
             self.mesh.world_to_object.transform_point(&p1)
-        ).union(&self.mesh.world_to_object.transform_point(&p2)))
+        ).union(&Bounds3f::from_point(self.mesh.world_to_object.transform_point(&p2))).aabb())
     }
 
     fn world_bound(&self) -> Box<dyn Bounding3<Float>> {
@@ -128,7 +128,7 @@ impl Shape for Triangle {
         let p1 = self.mesh.p[self.mesh.vertex_indicies[(self.index * 3 + 1) as usize] as usize];
         let p2 = self.mesh.p[self.mesh.vertex_indicies[(self.index * 3 + 2) as usize] as usize];
 
-        Box::new(Bounds3f::new(p0, p1).union(&p2))
+        Box::new(Bounds3f::new(p0, p1).union(&Bounds3f::from_point(p2)).aabb())
     }
 
     fn get_reverse_orientation(&self) -> bool {
@@ -307,9 +307,9 @@ impl Shape for Triangle {
         // Test intersection against alpha texture, if present
         if test_alpha_texture {
             if let Some(alpha_mask) = self.mesh.alpha_mask {
-                let isect_local = SurfaceInteraction::new(&p_hit, &Vector3f::default(), &uv_hit, &-ray.d,
-                    &dpdu, &dpdv, &Normal3f::default(),
-                    &Normal3f::default(), ray.time, Some(self), self.face_index);
+                let isect_local = SurfaceInteraction::new(p_hit, Vector3f::default(), uv_hit, -ray.d,
+                    dpdu, dpdv, Normal3f::default(),
+                    Normal3f::default(), ray.time, Some(self), self.face_index);
                 if alpha_mask.evaluate(&isect_local) == 0.0 {
                     StatsAccumulator::instance().report_percentage(String::from("Intersections/Ray-triangle intersection tests"), 0, 1);
                     return None;
@@ -318,8 +318,8 @@ impl Shape for Triangle {
         }
 
         // Fill in _SurfaceInteraction_ from triangle hit
-        let isect = SurfaceInteraction::new(&p_hit, &p_error, &uv_hit, &-ray.d, &dpdu, &dpdv,
-                                    &Normal3f::default(), &Normal3f::default(), ray.time,
+        let isect = SurfaceInteraction::new(p_hit, p_error, uv_hit, -ray.d, dpdu, dpdv,
+                                    Normal3f::default(), Normal3f::default(), ray.time,
                                     Some(self), self.face_index);
 
         // Override surface normal in _isect_ for triangle
@@ -585,9 +585,9 @@ impl Shape for Triangle {
             let uv_hit = b0 * uv[0] + b1 * uv[1] + b2 * uv[2];
 
             // Test intersection against alpha texture, if present
-            let isect_local = SurfaceInteraction::new(&p_hit, &Vector3f::default(), &uv_hit, &-ray.d,
-                        &dpdu, &dpdv, &Normal3f::default(),
-                        &Normal3f::default(), ray.time, Some(self), self.face_index);
+            let isect_local = SurfaceInteraction::new(p_hit, Vector3f::default(), uv_hit, -ray.d,
+                        dpdu, dpdv, Normal3f::default(),
+                        Normal3f::default(), ray.time, Some(self), self.face_index);
             
             if let Some(alpha_mask) = self.mesh.alpha_mask {
                 if alpha_mask.evaluate(&isect_local) == 0.0 {

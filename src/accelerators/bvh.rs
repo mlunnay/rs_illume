@@ -2,7 +2,7 @@ use crate::core::pbrt::Float;
 use crate::core::primitive::Primitive;
 use crate::core::light::Light;
 use crate::core::material::{Material, TransportMode};
-use crate::core::surface_interaction::SurfaceInteraction;
+use crate::core::interaction::SurfaceInteraction;
 use crate::core::profiler::Profiler;
 use crate::core::stats_accumulator::StatsAccumulator;
 use crate::core::geometry::{Bounds3f, Point3f, Ray, Vector3f, Bounding3};

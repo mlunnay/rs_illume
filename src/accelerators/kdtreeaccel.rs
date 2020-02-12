@@ -4,7 +4,7 @@ use crate::core::geometry::{Bounds3f, Bounding3, Vector3f, Ray};
 use crate::core::profiler::Profiler;
 use crate::core::light::Light;
 use crate::core::material::{Material, TransportMode};
-use crate::core::surface_interaction::SurfaceInteraction;
+use crate::core::interaction::SurfaceInteraction;
 use obstack::Obstack;
 use std::sync::Arc;
 

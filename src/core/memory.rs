@@ -1,4 +1,3 @@
-use std::mem::size_of;
 use std::ops::{Index, IndexMut};
 
 const LOG_BLOCK_SIZE: usize = 2;

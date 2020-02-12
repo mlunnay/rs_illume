@@ -487,7 +487,7 @@ impl Transform {
     }
 
     /// Transform a given SurfaceInteraction.
-    pub fn tranform_surface_interaction(&self, si: &SurfaceInteraction) -> SurfaceInteraction {
+    pub fn tranform_surface_interaction<'a>(&self, si: &SurfaceInteraction<'a>) -> SurfaceInteraction<'a> {
         let ret = SurfaceInteraction::default();
         // Transform _p_ and _pError_ in _SurfaceInteraction_
         ret.p = self.transform_point_with_abs_error(&si.p, &si.p_error, &mut ret.p_error);

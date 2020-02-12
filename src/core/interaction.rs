@@ -231,7 +231,7 @@ pub struct Shading {
 }
 
 #[derive(Default)]
-pub struct SurfaceInteraction {
+pub struct SurfaceInteraction<'a> {
     // Interaction fields
     pub p: Point3f,
     pub time: Float,
@@ -245,9 +245,9 @@ pub struct SurfaceInteraction {
     pub dpdv: Vector3f,
     pub dndu: Normal3f,
     pub dndv: Normal3f,
-    pub shape: Option<Arc<dyn Shape>>,
+    pub shape: Option<&'a dyn Shape>,
     pub shading: Shading,
-    pub primitive: Option<Arc<dyn Primitive>>,
+    pub primitive: Option<&'a dyn Primitive>,
     pub bsdf: Option<BSDF>,
     pub bssrdf: Option<Box<dyn BSSRDF>>,
     pub dpdx: RwLock<Vector3f>,
@@ -259,7 +259,7 @@ pub struct SurfaceInteraction {
     pub face_index: u32
 }
 
-impl SurfaceInteraction {
+impl<'a> SurfaceInteraction<'a> {
     pub fn new(
         p: Point3f,
         p_error: Vector3f,
@@ -270,7 +270,7 @@ impl SurfaceInteraction {
         dndu: Normal3f,
         dndv: Normal3f,
         time: Float,
-        shape: Option<Arc<dyn Shape>>,
+        shape: Option<&'a dyn Shape>,
         face_index: u32
     ) -> SurfaceInteraction {
         let mut n = Normal3f::from(dpdu.cross(&dpdv).normalize());
@@ -305,7 +305,7 @@ impl SurfaceInteraction {
             dvdx: RwLock::new(0.0),
             dvdy: RwLock::new(0.0),
             time,
-            shape: shape.clone(),
+            shape,
             medium_interface: None,
             face_index,
             shading: Shading::default(),
@@ -455,7 +455,7 @@ impl SurfaceInteraction {
     }
 }
 
-impl Interaction for SurfaceInteraction {
+impl<'a> Interaction for SurfaceInteraction<'a> {
     fn get_p(&self) -> Point3f {
         self.p
     }
@@ -489,11 +489,9 @@ impl Interaction for SurfaceInteraction {
     }
 }
 
-impl Clone for SurfaceInteraction {
+impl<'a> Clone for SurfaceInteraction<'a> {
     fn clone(&self) -> Self {
         SurfaceInteraction {
-            shape: self.shape.clone(),
-            primitive: self.primitive.clone(),
             dpdx: RwLock::new(*self.dpdx.read().unwrap()),
             dpdy: RwLock::new(*self.dpdy.read().unwrap()),
             dudx: RwLock::new(*self.dudx.read().unwrap()),

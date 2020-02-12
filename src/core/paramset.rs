@@ -2,12 +2,12 @@ use super::pbrt::{Float, Spectrum};
 use super::geometry::{Point2f, Vector2f, Point3f, Vector3f, Normal3f};
 use super::spectrum::{blackbody_normalized, CIE_lambda, SpectrumType};
 use super::floatfile::read_float_file;
-use super::fileutil::resolve_filename;
 use super::utils::float_to_string_general;
 use std::sync::Arc;
 use hashbrown::HashMap;
 use std::fmt;
 use num::cast;
+use std::path::Path;
 
 #[derive(Debug, Default, Clone)]
 pub struct ParamSetItem<T> {
@@ -150,7 +150,7 @@ impl ParamSet {
         self.erase_spectrum(name);
         let mut s: Vec<Spectrum> = Vec::with_capacity(names.len());
         for i in 0..names.len() {
-            let path = resolve_filename(names[i].as_str());
+            let path = Path::new(names[i].as_str());
             let path_string = String::from(path.to_str().unwrap());
             if let Some(spectra) = self.cached_spectra.get(&path_string) {
                 s.push(*spectra);

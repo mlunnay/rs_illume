@@ -51,7 +51,7 @@ pub trait SeparableBSSRDFProvider {
 /// Inner implementation of the SeparableBSSRDF class from C++.
 #[derive(Clone)]
 pub struct SeparableBSSRDFImplementation<'a> {
-    po: &'a SurfaceInteraction,
+    po: &'a SurfaceInteraction<'a>,
     eta: Float,
     ns: Normal3f,
     ss: Vector3f,
@@ -118,14 +118,14 @@ impl<'a> SeparableBSSRDFImplementation<'a> {
         sp
     }
 
-    pub fn sample_sp(
+    pub fn sample_sp<'b>(
         &self,
         provider: &impl SeparableBSSRDFProvider,
-        scene: &Scene,
+        scene: &'b Scene,
         mut u1: Float,
         u2: Point2f,
         arena: &Obstack,
-        si: &mut SurfaceInteraction,
+        si: &mut SurfaceInteraction<'b>,
         pdf: &mut Float
     ) -> Spectrum {
         let _profile = Profiler::instance().profile("BSSRDF::s()");
@@ -212,7 +212,7 @@ impl<'a> SeparableBSSRDFImplementation<'a> {
             return Spectrum::new(0.0);
         }
         let selected = num::clamp(u1 as usize * n_found, 0, n_found - 1);
-        *si = chain[selected].clone();
+        *si = chain[selected];
 
         // Compute sample PDF and return the spatial BSSRDF term $\Sp$
         *pdf = self.pdf_sp(provider, &*si) / n_found as Float;
@@ -398,13 +398,13 @@ impl<'a> SeparableBSSRDF for TabulatedBSSRDF<'a> {
         self.inner.sp(self, pi)
     }
 
-    fn sample_sp(
+    fn sample_sp<'b>(
         &self,
-        scene: &Scene,
+        scene: &'b Scene,
         u1: Float,
         u2: Point2f,
         arena: &Obstack,
-        si: &mut SurfaceInteraction,
+        si: &mut SurfaceInteraction<'b>,
         pdf: &mut Float
     ) -> Spectrum {
         self.inner.sample_sp(self, scene, u1, u2, arena, si, pdf)

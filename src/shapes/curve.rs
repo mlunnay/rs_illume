@@ -1,6 +1,6 @@
 use crate::core::pbrt::{Float, lerp, float_to_bits};
-use crate::core::geometry::{Bounding3, Vector3f, Vector2f, Ray, Point2f, Point3f, Normal3f, Bounds3f, Union, coordinate_system, dot_normal_vec};
-use crate::core::surface_interaction::SurfaceInteraction;
+use crate::core::geometry::{Bounding3, Vector3f, Vector2f, Ray, Point2f, Point3f, Normal3f, Bounds3f, coordinate_system, dot_normal_vec};
+use crate::core::interaction::SurfaceInteraction;
 use crate::core::interaction::{Interaction, SimpleInteraction};
 use crate::core::transform::Transform;
 use crate::core::material::Material;
@@ -245,8 +245,8 @@ impl Curve {
                 dpdv = ray_to_object.transform_vector(&dpdv_plane);
             }
             let isect = self.object_to_world.tranform_surface_interaction(&SurfaceInteraction::new(
-                &ray.point_at_time(t_hit), &p_error, &Point2f::new(u, v), &-ray.d, &dpdu, &dpdv,
-                &Normal3f::default(), &Normal3f::default(), ray.time, Some(self), 0));
+                ray.point_at_time(t_hit), p_error, Point2f::new(u, v), -ray.d, dpdu, dpdv,
+                Normal3f::default(), Normal3f::default(), ray.time, Some(self), 0));
             StatsAccumulator::instance().report_percentage(String::from("Intersections/Ray-curve intersection tests"), 1, 0);
             Some((isect, t_hit))
         }
@@ -265,7 +265,7 @@ impl Shape for Curve {
             Bounds3f::new(cp_obj[0], cp_obj[1]).union(&Bounds3f::new(cp_obj[2], cp_obj[3]));
         let width = [lerp(self.u_min, self.common.width[0], self.common.width[1]),
                     lerp(self.u_max, self.common.width[0], self.common.width[1])];
-        Box::new(b.expand(width[0].max(width[1]) * 0.5))
+        Box::new(b.aabb().expand(width[0].max(width[1]) * 0.5))
     }
 
     fn world_bound(&self) -> Box<dyn Bounding3<Float>> {

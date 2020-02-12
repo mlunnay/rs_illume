@@ -5,7 +5,7 @@ use crate::core::geometry::{Bounding3, Bounds3f, Ray, Point2f, Point3f, Normal3f
 use crate::core::transform::Transform;
 use crate::core::material::Material;
 use crate::core::interaction::*;
-use crate::core::surface_interaction::SurfaceInteraction;
+use crate::core::interaction::SurfaceInteraction;
 use crate::core::efloat::{EFloat, quadratic};
 use crate::core::profiler::Profiler;
 
@@ -195,8 +195,8 @@ impl Shape for Cylinder {
         let p_error = gamma(3) * Vector3f::new(p_hit.x, p_hit.y, 0.0).abs();
 
         // Initialize _SurfaceInteraction_ from parametric information
-        let isect = self.object_to_world.tranform_surface_interaction(&SurfaceInteraction::new(&p_hit, &p_error, &Point2f::new(u, v),
-                                                    &-ray.d, &dpdu, &dpdv, &dndu, &dndv,
+        let isect = self.object_to_world.tranform_surface_interaction(&SurfaceInteraction::new(p_hit, p_error, Point2f::new(u, v),
+                                                    -ray.d, dpdu, dpdv, dndu, dndv,
                                                     ray.time, Some(self), 0));
 
         Some((isect, t_shape_hit.v as Float))

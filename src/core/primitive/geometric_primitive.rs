@@ -1,6 +1,6 @@
 use super::Primitive;
 use crate::core::pbrt::Float;
-use crate::core::surface_interaction::SurfaceInteraction;
+use crate::core::interaction::SurfaceInteraction;
 use crate::core::material::{Material};
 use crate::core::light::Light;
 use crate::core::shape::Shape;
