@@ -42,4 +42,4 @@ pub mod mipmap;
 pub mod floatfile;
 pub mod lightdistrib;
 pub mod paramset;
-pub mod fileutil;
+pub mod parser;
