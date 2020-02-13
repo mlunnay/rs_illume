@@ -109,7 +109,7 @@ impl<'a> SeparableBSSRDFImplementation<'a> {
         let sp = self.sample_sp(provider, scene, u1, u2, arena, si, pdf);
         if !sp.is_black() {
             // Initialize material model at sampled surface interaction
-            // TODO: sort out area issues
+            // TODO: sort out arena issues
             let bsdf = arena.push_copy(BSDF::new(si, 1.0));
             bsdf.add(arena.push_copy(SeparableBSSRDFAdapter::new(self, self.mode, self.eta)));
             si.bsdf = bsdf;

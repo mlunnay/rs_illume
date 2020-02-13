@@ -10,3 +10,4 @@ pub mod core;
 pub mod shapes;
 pub mod accelerators;
 pub mod cameras;
+pub mod filters;
