@@ -20,10 +20,11 @@ pub struct FilmTilePixel {
     filter_weight_sum: Float
 }
 
+#[derive(Clone)]
 pub struct Film {
     pub full_resolution: Point2i,
     pub diagonal: Float,
-    pub filter: Arc<dyn Filter>,
+    pub filter: Arc<dyn Filter + Send + Sync>,
     pub filename: String,
     pub cropped_pixel_bounds: Bounds2i,
 
@@ -37,7 +38,7 @@ impl Film {
     pub fn new(
         resolution: Point2i,
         crop_window: Bounds2f,
-        filter: Arc<dyn Filter>,
+        filter: Arc<dyn Filter + Send + Sync>,
         diagonal: Float,
         filename: String,
         scale: Float,
@@ -46,12 +47,12 @@ impl Film {
         // Compute film image bounds
         let cropped_pixel_bounds = Bounds2i::new(
             Point2i::new(
-                (resolution.x as Float * crop_window.min.x).ceil().into(),
-                (resolution.y as Float * crop_window.min.y).ceil().into()
+                num::cast((resolution.x as Float * crop_window.min.x).ceil()).unwrap(),
+                num::cast((resolution.y as Float * crop_window.min.y).ceil()).unwrap()
             ),
             Point2i::new(
-                (resolution.x as Float * crop_window.max.x).ceil().into(),
-                (resolution.y as Float * crop_window.max.y).ceil().into()
+                num::cast((resolution.x as Float * crop_window.max.x).ceil()).unwrap(),
+                num::cast((resolution.y as Float * crop_window.max.y).ceil()).unwrap()
             )
         );
         info!("Created film with full resolution {}. Crop window of {} -> croppedPixelBounds {}",
@@ -94,9 +95,10 @@ impl Film {
     }
 
     pub fn get_sample_bounds(&self) -> Bounds2i {
+        let filter_radius: Point2f = Point2f::from(self.filter.get_radius());
         Bounds2i::new(
-            (self.cropped_pixel_bounds.min.cast::<Float>() + Point2f::new(0.5, 0.5) - Point2f::from(self.filter.get_radius())).floor() as i32,
-            (self.cropped_pixel_bounds.max.cast::<Float>() - Point2f::new(0.5, 0.5) + Point2f::from(self.filter.get_radius())).ceil() as i32
+            (Point2f::from(self.cropped_pixel_bounds.min.cast::<Float>() + Point2f::new(0.5, 0.5) - filter_radius)).floor().cast::<i32>(),
+            (Point2f::from(self.cropped_pixel_bounds.max.cast::<Float>() - Point2f::new(0.5, 0.5)) + filter_radius).ceil().cast::<i32>()
         )
     }
 
@@ -220,7 +222,7 @@ impl Film {
 
         // Write RGB image
         info!("Writing image {} with bounds {}", self.filename, self.cropped_pixel_bounds);
-        write_image(self.filename, &rgb, self.cropped_pixel_bounds, self.full_resolution);
+        write_image(&self.filename, &rgb, &self.cropped_pixel_bounds, &self.full_resolution);
     }
 
     pub fn clear(&mut self) {
@@ -286,7 +288,7 @@ impl<'a> FilmTile<'a> {
     pub fn add_sample(&self, p_film: &Point2f, l: &Spectrum, sample_weight: Float) {
         let _profile = Profiler::instance().profile("Film::AddSample()");
         if l.y() > self.max_sample_luminance {
-            l *= self.max_sample_luminance / l.y();
+            *l *= self.max_sample_luminance / l.y();
         }
         // Compute sample's raster bounds
         let p_film_discrete = *p_film - Vector2f::new(00.5, 00.5);
@@ -324,7 +326,7 @@ impl<'a> FilmTile<'a> {
 
                 // Update pixel values with filtered sample contribution
                 let ref mut pixel = self.pixels[self.get_pixel_index(&Point2i::new(x, y))];
-                pixel.contrib_sum += l * sample_weight * filter_weight;
+                pixel.contrib_sum += *l * sample_weight * filter_weight;
                 pixel.filter_weight_sum += filter_weight;
             }
         }

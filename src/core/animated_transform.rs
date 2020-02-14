@@ -1287,10 +1287,7 @@ impl AnimatedTransform {
     }
 
     /// Calculates the bounding box that encompases the entire motion of this AnimatedTransform.
-    pub fn motion_bounds<T>(&self, b: Box<dyn Bounding3<Float>>) -> Box<dyn Bounding3<Float>>
-    where
-    T: Copy + std::ops::Sub<Output = T> + PartialOrd + num::NumCast + 'static,
-    Bounds3f: Bounding3<Float>
+    pub fn motion_bounds(&self, b: Box<dyn Bounding3<Float>>) -> Box<dyn Bounding3<Float>>
     {
         if !self.actually_animated {
             self.start_transform.transform_bounds(b)

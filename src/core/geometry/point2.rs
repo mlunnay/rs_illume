@@ -207,19 +207,6 @@ T: Copy + AddAssign
     }
 }
 
-impl<T> Sub for Point2<T>
-where
-T: Copy + Sub<Output = T>
-{
-    type Output = Vector2<T>;
-    fn sub(self, rhs: Point2<T>) -> Vector2<T> {
-        Vector2::<T>{
-            x: self.x - rhs.x,
-            y: self.y - rhs.y
-        }
-    }
-}
-
 impl<T> Sub<Vector2<T>> for Point2<T>
 where
 T: Copy + Sub<Output = T>
@@ -227,6 +214,19 @@ T: Copy + Sub<Output = T>
     type Output = Point2<T>;
     fn sub(self, rhs: Vector2<T>) -> Point2<T> {
         Point2::<T>{
+            x: self.x - rhs.x,
+            y: self.y - rhs.y
+        }
+    }
+}
+
+impl<T> Sub for Point2<T>
+where
+T: Copy + Sub<Output = T>
+{
+    type Output = Vector2<T>;
+    fn sub(self, rhs: Point2<T>) -> Vector2<T> {
+        Vector2::<T>{
             x: self.x - rhs.x,
             y: self.y - rhs.y
         }

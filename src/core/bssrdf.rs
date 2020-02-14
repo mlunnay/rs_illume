@@ -16,13 +16,13 @@ use num::Float as NumFloat;
 
 pub trait BSSRDF {
     fn s(&self, pi: &SurfaceInteraction, wi: &Vector3f) -> Spectrum;
-    fn sample_s(
+    fn sample_s<'b>(
         &self,
-        scene: &Scene,
+        scene: &'b Scene,
         u1: Float,
         u2: Point2f,
         arena: &Obstack,
-        si: &mut SurfaceInteraction,
+        si: &mut SurfaceInteraction<'b>,
         pdf: &mut Float
     ) -> Spectrum;
 }
@@ -30,13 +30,13 @@ pub trait BSSRDF {
 pub trait SeparableBSSRDF: BSSRDF {
     fn sw(&self, w: &Vector3f) -> Spectrum;
     fn sp(&self, pi: &SurfaceInteraction) -> Spectrum;
-    fn sample_sp(
+    fn sample_sp<'b>(
         &self,
-        scene: &Scene,
+        scene: &'b Scene,
         u1: Float,
         u2: Point2f,
         arena: &Obstack,
-        si: &mut SurfaceInteraction,
+        si: &mut SurfaceInteraction<'b>,
         pdf: &mut Float
     ) -> Spectrum;
     fn pdf_sp(&self, si: &SurfaceInteraction) -> Float;
@@ -56,14 +56,14 @@ pub struct SeparableBSSRDFImplementation<'a> {
     ns: Normal3f,
     ss: Vector3f,
     ts: Vector3f,
-    material: Arc<dyn Material>,
+    material: Arc<dyn Material + Send + Sync>,
     mode: TransportMode
 }
 
 impl<'a> SeparableBSSRDFImplementation<'a> {
     pub fn new(
         po: &'a SurfaceInteraction,
-        eta: Float, material: Arc<dyn Material>,
+        eta: Float, material: Arc<dyn Material + Send + Sync>,
         mode: TransportMode
     ) -> Self {
         let ns = po.shading.n;
@@ -95,14 +95,14 @@ impl<'a> SeparableBSSRDFImplementation<'a> {
         provider.sr(self.po.p.distance(&pi.p))
     }
 
-    pub fn sample_s(
+    pub fn sample_s<'b>(
         &self,
         provider: &impl SeparableBSSRDFProvider,
-        scene: &Scene,
+        scene: &'b Scene,
         u1: Float,
         u2: Point2f,
         arena: &Obstack,
-        si: &mut SurfaceInteraction,
+        si: &mut SurfaceInteraction<'b>,
         pdf: &mut Float
     ) -> Spectrum {
         let _profile = Profiler::instance().profile("BSSRDF::sample_s()");
@@ -265,7 +265,7 @@ pub struct TabulatedBSSRDF<'a> {
 impl<'a> TabulatedBSSRDF<'a> {
     pub fn new(
         po: &'a SurfaceInteraction,
-        material: Arc<dyn Material>,
+        material: Arc<dyn Material + Send + Sync>,
         mode: TransportMode,
         eta: Float,
         sigma_a: Spectrum,
@@ -376,13 +376,13 @@ impl<'a> BSSRDF for TabulatedBSSRDF<'a> {
         self.inner.s(self, pi, wi)
     }
 
-    fn sample_s(
+    fn sample_s<'b>(
         &self,
-        scene: &Scene,
+        scene: &'b Scene,
         u1: Float,
         u2: Point2f,
         arena: &Obstack,
-        si: &mut SurfaceInteraction,
+        si: &mut SurfaceInteraction<'b>,
         pdf: &mut Float
     ) -> Spectrum {
         self.inner.sample_s(self, scene, u1, u2, arena, si, pdf)

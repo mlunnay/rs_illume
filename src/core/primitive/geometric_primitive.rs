@@ -2,7 +2,7 @@ use super::Primitive;
 use crate::core::pbrt::Float;
 use crate::core::interaction::SurfaceInteraction;
 use crate::core::material::{Material};
-use crate::core::light::Light;
+use crate::core::light::AreaLight;
 use crate::core::shape::Shape;
 use crate::core::medium::MediumInterface;
 use crate::core::geometry::{Ray, Bounding3};
@@ -11,25 +11,25 @@ use std::sync::Arc;
 use std::mem;
 
 pub struct GeometricPrimitive {
-    shape: Arc<dyn Shape>,
-    material: Option<Arc<dyn Material>>,
-    area_light: Option<Arc<dyn Light>>,
+    shape: Arc<dyn Shape + Send + Sync>,
+    material: Option<Arc<dyn Material + Send + Sync>>,
+    area_light: Option<Arc<dyn AreaLight + Send + Sync>>,
     medium_interface: Option<Arc<MediumInterface>>
 }
 
 impl GeometricPrimitive {
     pub fn new(
-        shape: Arc<dyn Shape>,
-        material: Option<Arc<dyn Material>>,
-        area_light: Option<Arc<dyn Light>>,
+        shape: Arc<dyn Shape + Send + Sync>,
+        material: Option<Arc<dyn Material + Send + Sync>>,
+        area_light: Option<Arc<dyn AreaLight + Send + Sync>>,
         medium_interface: Option<Arc<MediumInterface>>
     ) -> GeometricPrimitive {
         StatsAccumulator::instance().report_memory_counter(String::from("Memory/Primitive"), mem::size_of::<GeometricPrimitive>() as i64);
         GeometricPrimitive {
             shape,
-            material,
-            area_light,
-            medium_interface
+            material: material.clone(),
+            area_light: area_light.clone(),
+            medium_interface: medium_interface.clone()
         }
     }
 }
@@ -68,7 +68,7 @@ impl Primitive for GeometricPrimitive {
         self.shape.intersect_p(ray, true)
     }
 
-    fn get_area_light(&self) -> Option<Arc<dyn Light>> {
+    fn get_area_light(&self) -> Option<Arc<dyn AreaLight + Send + Sync>> {
         if let Some(light) = self.area_light {
             Some(light.clone())
         } else {
@@ -76,7 +76,7 @@ impl Primitive for GeometricPrimitive {
         }
     }
 
-    fn get_material(&self) -> Option<Arc<dyn Material>> {
+    fn get_material(&self) -> Option<Arc<dyn Material + Send + Sync>> {
         if let Some(material) = self.material {
             Some(material.clone())
         } else {

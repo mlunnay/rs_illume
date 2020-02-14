@@ -58,7 +58,7 @@ pub trait Bounding3<T: Copy + PartialOrd + Sub<Output = T> + Mul<Output=T> + num
     /// Returns the surface area of the bounding shape.
     fn surface_area(&self) -> T {
         let d = self.diagonal();
-        num::cast(2).unwrap() * (d.x * d.y + d.x * d.z + d.y * d.z)
+        num::cast::<_, T>(2).unwrap() * (d.x * d.y + d.x * d.z + d.y * d.z)
     }
 
     /// Returns the volume of the bounding object.

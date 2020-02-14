@@ -15,7 +15,7 @@ pub struct OrthographicCamera {
     pub shutter_open: Float,
     pub shutter_close: Float,
     pub film: Arc<Film>,
-    pub medium: Option<Arc<dyn Medium>>,
+    pub medium: Option<Arc<dyn Medium + Send + Sync>>,
     // projective camera common
     camera_to_screen: Transform,
     raster_to_camera: Transform,
@@ -37,10 +37,10 @@ impl OrthographicCamera {
         lens_radius: Float,
         focal_distance: Float,
         film: Arc<Film>,
-        medium: Option<Arc<dyn Medium>>
+        medium: Option<Arc<dyn Medium + Send + Sync>>
     ) -> OrthographicCamera {
         // Compute projective camera screen transformations
-        let screen_to_raster = Transform::scale(film.full_resolution.x, film.full_resolution.y, 1.0) *
+        let screen_to_raster = Transform::scale(film.full_resolution.x as Float, film.full_resolution.y as Float, 1.0) *
             Transform::scale(1.0 / (screen_window.max.x - screen_window.min.x),
                 1.0 / (screen_window.min.y - screen_window.max.y), 1.0) *
             Transform::translate(&Vector3f::new(-screen_window.min.x, -screen_window.max.y, 0.0));
@@ -83,7 +83,7 @@ impl Camera for OrthographicCamera {
         self.film
     }
 
-    fn get_medium(&self) -> Option<Arc<dyn Medium>> {
+    fn get_medium(&self) -> Option<Arc<dyn Medium + Send + Sync>> {
         self.medium
     }
 

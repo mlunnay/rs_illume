@@ -6,12 +6,12 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct ScaledBxDF {
-    bxdf: Arc<dyn BxDF>,
+    bxdf: Arc<dyn BxDF + Send + Sync>,
     scale: Spectrum
 }
 
 impl ScaledBxDF {
-    pub fn new(bxdf: Arc<dyn BxDF>, scale: Spectrum) -> Self {
+    pub fn new(bxdf: Arc<dyn BxDF + Send + Sync>, scale: Spectrum) -> Self {
         ScaledBxDF {
             bxdf,
             scale

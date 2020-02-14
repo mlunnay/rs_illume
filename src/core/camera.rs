@@ -17,7 +17,7 @@ pub trait Camera: Send + Sync {
 
     fn get_film(&self) -> Arc<Film>;
 
-    fn get_medium(&self) -> Option<Arc<dyn Medium>> {
+    fn get_medium(&self) -> Option<Arc<dyn Medium + Send + Sync>> {
         None
     }
 

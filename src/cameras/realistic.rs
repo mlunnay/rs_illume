@@ -10,19 +10,19 @@ use crate::core::stats_accumulator::StatsAccumulator;
 use crate::core::sampling::concentric_sample_disk;
 use crate::core::reflection::refract;
 use crate::core::low_discrepancy::radical_inverse;
-use crate::core::image_io::write_image;
+use crate::core::imageio::write_image;
 use crate::core::rng::Rng;
 use std::sync::Arc;
 use rayon::prelude::*;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct RealisticCamera {
     // camera common
     pub camera_to_world: AnimatedTransform,
     pub shutter_open: Float,
     pub shutter_close: Float,
     pub film: Arc<Film>,
-    pub medium: Option<Arc<dyn Medium>>,
+    pub medium: Option<Arc<dyn Medium + Send + Sync>>,
     // RealisticCamera Private Data
     simple_weighting: bool,
     element_interfaces: Vec<LensElementInterface>,
@@ -47,7 +47,7 @@ impl RealisticCamera {
         simple_weighting: bool,
         lens_data: &Vec<Float>,
         film: Arc<Film>,
-        medium: Option<Arc<dyn Medium>>
+        medium: Option<Arc<dyn Medium + Send + Sync>>
     ) -> RealisticCamera {
         let element_interfaces: Vec<LensElementInterface> = Vec::new();
         for i in (0..lens_data.len()).step_by(4) {
@@ -649,9 +649,9 @@ impl RealisticCamera {
             }
         }
 
-        write_image(filename, image,
-            Bounds2i::new(Point2i::default(), Point2i::new(n_samples as i32, n_samples as i32)),
-            Point2i::new(n_samples as i32, n_samples as i32));
+        write_image(filename, &image,
+            &Bounds2i::new(Point2i::default(), Point2i::new(n_samples as i32, n_samples as i32)),
+            &Point2i::new(n_samples as i32, n_samples as i32));
     }
 
     fn sample_exit_pupil(
@@ -662,7 +662,7 @@ impl RealisticCamera {
     ) -> Point3f {
         // Find exit pupil bound for sample distance from film center
         let r_film = (p_film.x * p_film.x + p_film.y * p_film.y).sqrt();
-        let mut r_index = (r_film / (self.film.diagonal() / 2.0) * self.exit_pupil_bounds.len() as Float) as usize;
+        let mut r_index = (r_film / (self.film.diagonal / 2.0) * self.exit_pupil_bounds.len() as Float) as usize;
         r_index = r_index.min(self.exit_pupil_bounds.len() - 1);
         let pupil_bounds = self.exit_pupil_bounds[r_index];
         *sample_bounds_area = pupil_bounds.area();
@@ -739,16 +739,16 @@ impl Camera for RealisticCamera {
         self.film
     }
 
-    fn get_medium(&self) -> Option<Arc<dyn Medium>> {
+    fn get_medium(&self) -> Option<Arc<dyn Medium + Send + Sync>> {
         self.medium
     }
 
     fn generate_ray(&self, sample: &CameraSample, ray: &mut Ray) -> Float {
         let _guard = Profiler::instance().profile("Camera::generate_ray()");
         // Find point on film, _pFilm_, corresponding to _sample.pFilm_
-        let s  = Point2f::new(sample.p_film.x / self.film.full_resolution.x,
-            sample.p_film.y / self.film.full_resolution.y);
-        let p_film2 = self.film.get_physical_etent().lerp(s);
+        let s  = Point2f::new(sample.p_film.x / self.film.full_resolution.x as Float,
+            sample.p_film.y / self.film.full_resolution.y as Float);
+        let p_film2 = self.film.get_physical_extent().lerp(&s);
         let p_film = Point3f::new(-p_film2.x, p_film2.y, 0.0);
 
         // Trace ray from _pFilm_ through lens system

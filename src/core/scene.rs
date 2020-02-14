@@ -8,18 +8,18 @@ use super::stats_accumulator::StatsAccumulator;
 use std::sync::Arc;
 
 pub struct Scene {
-    aggregate: Arc<dyn Primitive>,
+    aggregate: Arc<dyn Primitive + Send + Sync>,
     _world_bound: Bounds3f,
-    pub lights: Vec<Arc<dyn Light>>,
+    pub lights: Vec<Arc<dyn Light + Send + Sync>>,
     // Store infinite light sources separately for cases where we only want
     // to loop over them.
-    pub infinite_lights: Vec<Arc<dyn Light>>
+    pub infinite_lights: Vec<Arc<dyn Light + Send + Sync>>
 }
 
 impl Scene {
     pub fn new(
-        aggregate: Arc<dyn Primitive>,
-        lights: Vec<Arc<dyn Light>>
+        aggregate: Arc<dyn Primitive + Send + Sync>,
+        lights: Vec<Arc<dyn Light + Send + Sync>>
     ) -> Scene {
         let mut scene = Scene {
             aggregate,

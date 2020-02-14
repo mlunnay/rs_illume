@@ -71,7 +71,7 @@ pub trait Interaction {
         }
     }
 
-    fn get_medium(&self, w: &Vector3f) -> Option<Arc<dyn Medium>> {
+    fn get_medium(&self, w: &Vector3f) -> Option<Arc<dyn Medium + Send + Sync>> {
         match self.get_medium_interface() {
             Some(ref medium) => {
                 if w.dot(&self.get_n().into()) > 0.0 {
@@ -85,7 +85,7 @@ pub trait Interaction {
         }
     }
 
-    fn get_phase(&self) -> Option<Arc<dyn PhaseFunction>> {
+    fn get_phase(&self) -> Option<Arc<dyn PhaseFunction + Send + Sync>> {
         None
     }
 
@@ -164,7 +164,7 @@ pub struct MediumInteraction {
     pub n: Normal3f,
     pub medium_interface: Option<Arc<MediumInterface>>,
     
-    pub phase: Option<Arc<dyn PhaseFunction>>
+    pub phase: Option<Arc<dyn PhaseFunction + Send + Sync>>
 }
 
 impl MediumInteraction {
@@ -173,7 +173,7 @@ impl MediumInteraction {
         wo: Vector3f,
         time: Float,
         medium_interface: Option<Arc<MediumInterface>>,
-        phase: Option<Arc<dyn PhaseFunction>>
+        phase: Option<Arc<dyn PhaseFunction + Send + Sync>>
     ) -> MediumInteraction {
         MediumInteraction {
             p,
@@ -216,7 +216,7 @@ impl Interaction for MediumInteraction {
         self.medium_interface
     }
 
-    fn get_phase(&self) -> Option<Arc<dyn PhaseFunction>> {
+    fn get_phase(&self) -> Option<Arc<dyn PhaseFunction + Send + Sync>> {
         self.phase
     }
 }
@@ -347,7 +347,8 @@ impl<'a> SurfaceInteraction<'a> {
         Spectrum::new(0.0)
     }
 
-    pub fn computer_scattering_functions(
+    /// Default mode is [TransportMode::Radiance]
+    pub fn compute_scattering_functions(
         &mut self,
         ray: &Ray,
         arena: &mut Obstack,

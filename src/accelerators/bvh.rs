@@ -1,6 +1,6 @@
 use crate::core::pbrt::Float;
 use crate::core::primitive::Primitive;
-use crate::core::light::Light;
+use crate::core::light::AreaLight;
 use crate::core::material::{Material, TransportMode};
 use crate::core::interaction::SurfaceInteraction;
 use crate::core::profiler::Profiler;
@@ -24,13 +24,13 @@ pub enum SplitMethod {
 pub struct BVHAccel {
     max_prims_in_node: u8,  // show intent as maxPrimsInNode has a max value of 255
     split_method: SplitMethod,
-    primitives: Vec<Arc<dyn Primitive>>,
+    primitives: Vec<Arc<dyn Primitive + Send + Sync>>,
     nodes: Vec<LinearBVHNode>
 }
 
 impl BVHAccel {
     pub fn new(
-        p: Vec<Arc<dyn Primitive>>,
+        p: Vec<Arc<dyn Primitive + Send + Sync>>,
         max_prims_in_node: u8,
         split_method: SplitMethod
     ) -> BVHAccel {
@@ -55,7 +55,7 @@ impl BVHAccel {
         // Build BVH tree for primitives using _primitiveInfo_
         let mut arena = Obstack::with_initial_capacity(1024 * 1024);
         let mut total_nodes = 0;
-        let mut ordered_prims: Vec<Arc<dyn Primitive>> = Vec::with_capacity(num_primitives);
+        let mut ordered_prims: Vec<Arc<dyn Primitive + Send + Sync>> = Vec::with_capacity(num_primitives);
 
         let root = if split_method == SplitMethod::HLBVH {
             BVHAccel::hlbvh_build(max_prims_in_node, &p,
@@ -95,13 +95,13 @@ impl BVHAccel {
     pub fn recursive_build<'a>(
         max_prims_in_node: u8,
         split_method: SplitMethod,
-        primitives: &Vec<Arc<dyn Primitive>>,
+        primitives: &Vec<Arc<dyn Primitive + Send + Sync>>,
         arena: &'a mut Obstack,
         primitive_info: &mut Vec<BVHPrimitiveInfo>,
         start: usize,
         end: usize,
         total_nodes: &mut usize,
-        ordered_prims: &mut Vec<Arc<dyn Primitive>>
+        ordered_prims: &mut Vec<Arc<dyn Primitive + Send + Sync>>
     ) -> &'a mut BVHBuildNode<'a> {
         assert_ne!(start, end);
         let node = arena.push_copy(BVHBuildNode::new());
@@ -248,11 +248,11 @@ impl BVHAccel {
 
     pub fn hlbvh_build<'a>(
         max_prims_in_node: u8,
-        primitives: &Vec<Arc<dyn Primitive>>,
+        primitives: &Vec<Arc<dyn Primitive + Send + Sync>>,
         arena: &'a mut Obstack,
         primitive_info: &Vec<BVHPrimitiveInfo>,
         total_nodes: &mut usize,
-        ordered_prims: &mut Vec<Arc<dyn Primitive>>
+        ordered_prims: &mut Vec<Arc<dyn Primitive + Send + Sync>>
     ) -> &'a mut BVHBuildNode<'a> {
         // Compute bounding box of all primitive centroids
         let mut bounds = Bounds3f::default();
@@ -326,7 +326,7 @@ impl BVHAccel {
 
     pub fn emit_lbvh<'a, T>(
         max_prims_in_node: u8,
-        primitives: &Vec<Arc<dyn Primitive>>,
+        primitives: &Vec<Arc<dyn Primitive + Send + Sync>>,
         // build_nodes: &mut obstack::Ref<'a, Vec<&'a BVHBuildNode<'a>>>,
         // build_nodes: &'b mut [&'a mut BVHBuildNode<'a>],
         build_nodes: &T,
@@ -334,7 +334,7 @@ impl BVHAccel {
         morton_prims: &[MortonPrimitive],
         n_primitives: usize,
         total_nodes: &mut usize,
-        ordered_prims: &mut Vec<Arc<dyn Primitive>>,
+        ordered_prims: &mut Vec<Arc<dyn Primitive + Send + Sync>>,
         ordered_prims_offset: AtomicUsize,
         bit_index: i32
     ) -> &'a mut BVHBuildNode<'a>
@@ -538,12 +538,12 @@ impl BVHAccel {
 }
 
 impl Primitive for BVHAccel {
-    fn get_area_light(&self) -> Option<Arc<dyn Light>> {
+    fn get_area_light(&self) -> Option<Arc<dyn AreaLight + Send + Sync>> {
         error!("BVHAccel::get_area_light() called; should have gone to GeometricPrimitive.");
         None
     }
 
-    fn get_material(&self) -> Option<Arc<dyn Material>> {
+    fn get_material(&self) -> Option<Arc<dyn Material + Send + Sync>> {
         error!("BVHAccel::get_material() called; should have gone to GeometricPrimitive.");
         None
     }

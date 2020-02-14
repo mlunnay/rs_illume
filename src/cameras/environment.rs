@@ -13,7 +13,7 @@ pub struct EnvironmentCamera {
     pub shutter_open: Float,
     pub shutter_close: Float,
     pub film: Arc<Film>,
-    pub medium: Option<Arc<dyn Medium>>,
+    pub medium: Option<Arc<dyn Medium + Send + Sync>>,
 }
 
 impl EnvironmentCamera {
@@ -22,7 +22,7 @@ impl EnvironmentCamera {
         shutter_open: Float,
         shutter_close: Float,
         film: Arc<Film>,
-        medium: Option<Arc<dyn Medium>>
+        medium: Option<Arc<dyn Medium + Send + Sync>>
     ) -> EnvironmentCamera {
         EnvironmentCamera {
             camera_to_world,
@@ -51,15 +51,15 @@ impl Camera for EnvironmentCamera {
         self.film
     }
 
-    fn get_medium(&self) -> Option<Arc<dyn Medium>> {
+    fn get_medium(&self) -> Option<Arc<dyn Medium + Send + Sync>> {
         self.medium
     }
 
     fn generate_ray(&self, sample: &CameraSample, ray: &mut Ray) -> Float {
         let _guard = Profiler::instance().profile("Camera::generate_ray()");
         // Compute environment camera ray direction
-        let theta = PI * sample.p_film.y / film.full_resolution.y;
-        let phi = 2.0 * PI * sample.p_film.x / film.full_resolution.x;
+        let theta = PI * sample.p_film.y / self.film.full_resolution.y as Float;
+        let phi = 2.0 * PI * sample.p_film.x / self.film.full_resolution.x as Float;
         let dir = Vector3f::new(theta.sin() * phi.cos(), theta.cos(),
             theta.sin() * phi.sin());
         *ray = Ray::new(Point3f::default(), dir);

@@ -17,7 +17,7 @@ pub struct PerspectiveCamera {
     pub shutter_open: Float,
     pub shutter_close: Float,
     pub film: Arc<Film>,
-    pub medium: Option<Arc<dyn Medium>>,
+    pub medium: Option<Arc<dyn Medium + Send + Sync>>,
     // projective camera common
     camera_to_screen: Transform,
     raster_to_camera: Transform,
@@ -41,10 +41,10 @@ impl PerspectiveCamera {
         focal_distance: Float,
         fov: Float,
         film: Arc<Film>,
-        medium: Option<Arc<dyn Medium>>
+        medium: Option<Arc<dyn Medium + Send + Sync>>
     ) -> PerspectiveCamera {
         // Compute projective camera screen transformations
-        let screen_to_raster = Transform::scale(film.full_resolution.x, film.full_resolution.y, 1.0) *
+        let screen_to_raster = Transform::scale(film.full_resolution.x as Float, film.full_resolution.y as Float, 1.0) *
             Transform::scale(1.0 / (screen_window.max.x - screen_window.min.x),
                 1.0 / (screen_window.min.y - screen_window.max.y), 1.0) *
             Transform::translate(&Vector3f::new(-screen_window.min.x, -screen_window.max.y, 0.0));
@@ -55,7 +55,7 @@ impl PerspectiveCamera {
         // Compute image plane bounds at $z=1$ for _PerspectiveCamera_
         let res = film.full_resolution;
         let mut min = raster_to_camera.transform_point(&Point3f::default());
-        let mut max = raster_to_camera.transform_point(&Point3f::new(res.x, res.y, 0.0));
+        let mut max = raster_to_camera.transform_point(&Point3f::new(res.x as Float, res.y as Float, 0.0));
         min /= min.z;
         max /= max.z;
         let a = ((max.x - min.x) * (max.y - min.y)).abs();
@@ -96,7 +96,7 @@ impl Camera for PerspectiveCamera {
         self.film
     }
 
-    fn get_medium(&self) -> Option<Arc<dyn Medium>> {
+    fn get_medium(&self) -> Option<Arc<dyn Medium + Send + Sync>> {
         self.medium
     }
 
@@ -198,9 +198,9 @@ impl Camera for PerspectiveCamera {
         }
 
         // Return zero importance for out of bounds points
-        let sample_bounds = film.get_sample_bounds();
-        if p_raster.x < sample_bounds.min.x || p_raster.x >= sample_bounds.max.x ||
-            p_raster.y < sample_bounds.min.y || p_raster.y >= sample_bounds.max.y {
+        let sample_bounds = self.film.get_sample_bounds();
+        if p_raster.x < sample_bounds.min.x as Float || p_raster.x >= sample_bounds.max.x as Float ||
+            p_raster.y < sample_bounds.min.y as Float || p_raster.y >= sample_bounds.max.y as Float {
             return Spectrum::new(0.0);
         }
 
@@ -227,9 +227,9 @@ impl Camera for PerspectiveCamera {
             .transform_point(&c2w.inverse().transform_point(&p_focus));
         
         // Return zero probability for out of bounds points
-        let sample_bounds = film.get_sample_bounds();
-        if p_raster.x < sample_bounds.min.x || p_raster.x >= sample_bounds.max.x ||
-            p_raster.y < sample_bounds.min.y || p_raster.y >= sample_bounds.max.y {
+        let sample_bounds = self.film.get_sample_bounds();
+        if p_raster.x < sample_bounds.min.x as Float || p_raster.x >= sample_bounds.max.x as Float ||
+            p_raster.y < sample_bounds.min.y as Float || p_raster.y >= sample_bounds.max.y as Float {
             return (0.0, 0.0);
         }
 
@@ -250,7 +250,7 @@ impl Camera for PerspectiveCamera {
         // Uniformly sample a lens interaction _lensIntr_
         let p_lens = self.lens_radius * concentric_sample_disk(u);
         let p_lens_world = self.camera_to_world.transform_point(iref.get_time(), &Point3f::new(p_lens.x, p_lens.y, 0.0));
-        let lens_intr: SimpleInteraction = SimpleInteraction::default();
+        let lens_intr: Box<SimpleInteraction> = Box::new(SimpleInteraction::default());
         lens_intr.p = p_lens_world;
         lens_intr.time = iref.get_time();
         if let Some(medium) = self.medium {
@@ -259,7 +259,7 @@ impl Camera for PerspectiveCamera {
         lens_intr.n = Normal3f::from(self.camera_to_world.transform_vector(iref.get_time(), &Vector3f::new(0.0, 0.0, 1.0)));
 
         // Populate arguments and compute the importance value
-        *vis = VisibilityTester::new(iref, &lens_intr);
+        *vis = VisibilityTester::new(iref, lens_intr);
         let dist = wi.length();
         *wi = (lens_intr.p - iref.get_p()) / dist;
         

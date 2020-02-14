@@ -69,14 +69,14 @@ impl fmt::Display for HenyeyGreenstein {
 
 #[derive(Debug, Default, Clone)]
 pub struct MediumInterface {
-    pub inside: Option<Arc<dyn Medium>>,
-    pub outside: Option<Arc<dyn Medium>>
+    pub inside: Option<Arc<dyn Medium + Send + Sync>>,
+    pub outside: Option<Arc<dyn Medium + Send + Sync>>
 }
 
 impl MediumInterface {
     pub fn new(
-        inside: Option<Arc<dyn Medium>>,
-        outside: Option<Arc<dyn Medium>>
+        inside: Option<Arc<dyn Medium + Send + Sync>>,
+        outside: Option<Arc<dyn Medium + Send + Sync>>
     ) -> MediumInterface {
         MediumInterface{
             inside,
@@ -101,7 +101,7 @@ impl MediumInterface {
 
 impl<T> From<T> for MediumInterface
 where
-T: Medium + 'static
+T: Medium + Send + Sync + 'static
 {
     fn from(medium: T) -> MediumInterface {
         MediumInterface{
@@ -111,8 +111,8 @@ T: Medium + 'static
     }
 }
 
-impl From<Arc<dyn Medium>> for MediumInterface {
-    fn from(medium: Arc<dyn Medium>) -> MediumInterface {
+impl From<Arc<dyn Medium + Send + Sync>> for MediumInterface {
+    fn from(medium: Arc<dyn Medium + Send + Sync>) -> MediumInterface {
         MediumInterface {
             inside: Some(medium.clone()),
             outside: Some(medium.clone())

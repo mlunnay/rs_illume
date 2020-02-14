@@ -2,7 +2,7 @@ use crate::core::pbrt::{Float};
 use crate::core::primitive::Primitive;
 use crate::core::geometry::{Bounds3f, Bounding3, Vector3f, Ray};
 use crate::core::profiler::Profiler;
-use crate::core::light::Light;
+use crate::core::light::AreaLight;
 use crate::core::material::{Material, TransportMode};
 use crate::core::interaction::SurfaceInteraction;
 use obstack::Obstack;
@@ -13,7 +13,7 @@ pub struct KdTreeAccel {
     traversal_cost: i32,
     max_prims: u32,
     empty_bonus: Float,
-    primitives: Vec<Arc<dyn Primitive>>,
+    primitives: Vec<Arc<dyn Primitive + Send + Sync>>,
     primitive_indices: Vec<u32>,
     nodes: Vec<KdAccelNode>,
     n_alloced_nodes: u32,
@@ -23,7 +23,7 @@ pub struct KdTreeAccel {
 
 impl KdTreeAccel {
     pub fn new(
-        p: Vec<Arc<dyn Primitive>>,
+        p: Vec<Arc<dyn Primitive + Send + Sync>>,
         isect_cost: i32,
         traversal_cost: i32,
         empty_bonus: Float,
@@ -235,12 +235,12 @@ impl KdTreeAccel {
 }
 
 impl Primitive for KdTreeAccel {
-    fn get_area_light(&self) -> Option<Arc<dyn Light>> {
+    fn get_area_light(&self) -> Option<Arc<dyn AreaLight + Send + Sync>> {
         error!("KdTreeAccel::get_area_light() called; should have gone to GeometricPrimitive.");
         None
     }
 
-    fn get_material(&self) -> Option<Arc<dyn Material>> {
+    fn get_material(&self) -> Option<Arc<dyn Material + Send + Sync>> {
         error!("KdTreeAccel::get_material() called; should have gone to GeometricPrimitive.");
         None
     }

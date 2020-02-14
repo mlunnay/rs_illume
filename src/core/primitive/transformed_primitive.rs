@@ -2,7 +2,7 @@ use super::Primitive;
 use crate::core::pbrt::Float;
 use crate::core::interaction::SurfaceInteraction;
 use crate::core::material::{Material, TransportMode};
-use crate::core::light::Light;
+use crate::core::light::AreaLight;
 use crate::core::geometry::{Ray, Bounding3};
 use crate::core::stats_accumulator::StatsAccumulator;
 use crate::core::animated_transform::AnimatedTransform;
@@ -12,13 +12,13 @@ use std::mem;
 use obstack::Obstack;
 
 pub struct TransformedPrimitive {
-    primitive: Arc<dyn Primitive>,
+    primitive: Arc<dyn Primitive + Send + Sync>,
     primitive_to_world: AnimatedTransform
 }
 
 impl TransformedPrimitive {
     pub fn new(
-        primitive: Arc<dyn Primitive>,
+        primitive: Arc<dyn Primitive + Send + Sync>,
         primitive_to_world: AnimatedTransform
     ) -> TransformedPrimitive {
         StatsAccumulator::instance().report_memory_counter(String::from("Memory/Primitive"), mem::size_of::<TransformedPrimitive>() as i64);
@@ -57,11 +57,11 @@ impl Primitive for TransformedPrimitive {
         self.primitive.intersect_p(&interpolated_prim_to_world.inverse().transform_ray(ray))
     }
 
-    fn get_area_light(&self) -> Option<Arc<dyn Light>>{
+    fn get_area_light(&self) -> Option<Arc<dyn AreaLight + Send + Sync>>{
         None
     }
 
-    fn get_material(&self) -> Option<Arc<dyn Material>>{
+    fn get_material(&self) -> Option<Arc<dyn Material + Send + Sync>>{
         None
     }
 

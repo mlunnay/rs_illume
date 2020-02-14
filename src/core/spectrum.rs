@@ -103,13 +103,13 @@ macro_rules! CoefficientSpectrumImpl {
 
         impl Index<usize> for $T {
             type Output = Float;
-            fn index(&self, i: usize) -> Float {
-                self.c[i]
+            fn index(&self, i: usize) -> &Float {
+                &self.c[i]
             }
         }
 
         impl IndexMut<usize> for $T {
-            fn index_mut(&self, i: usize) -> &mut Float {
+            fn index_mut(&mut self, i: usize) -> &mut Float {
                 &mut self.c[i]
             }
         }
@@ -250,6 +250,10 @@ macro_rules! CoefficientSpectrumImpl {
         impl Zero for $T {
             fn zero() -> Self {
                 $T{ c: [0.0; $n_spectrum_samples] }
+            }
+
+            fn is_zero(&self) -> bool {
+                self.c.iter().all(|v| *v == Float::zero())
             }
         }
     };
@@ -422,7 +426,7 @@ impl Default for SampledSpectrum {
 }
 
 impl From<RGBSpectrum> for SampledSpectrum {
-    fn from(r: &RGBSpectrum) -> Self {
+    fn from(r: RGBSpectrum) -> Self {
         let mut rgb: [Float; 3] = [0.0; 3];
         r.to_rgb(&mut rgb);
         SampledSpectrum::from_rgb(&rgb, SpectrumType::Reflectance)

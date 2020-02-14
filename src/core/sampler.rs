@@ -30,6 +30,8 @@ pub trait Sampler: Send + Sync {
     fn set_sample_number(&self, sample_num: u64) -> bool;
 
     fn current_sample_number(&self) -> usize;
+
+    fn round_count(&self, n: usize) -> usize { n }
 }
 
 pub trait SamplerChild {

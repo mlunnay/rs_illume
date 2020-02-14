@@ -29,19 +29,19 @@ pub trait Integrator {
 }
 
 pub trait SamplerIntegrator: Send + Sync {
-    fn preprocess(&self, scene: &Scene, sampler: Arc<dyn Sampler>) {}
+    fn preprocess(&self, scene: &Scene, sampler: Arc<dyn Sampler + Send + Sync>) {}
 
     fn li(&self, ray: &Ray, scene: &Scene, sampler: Box<dyn Sampler>, areana: &mut Obstack, depth: i32) -> Spectrum;
 }
 
 pub struct SamplerIntegratorBase {
-    pub camera: Arc<dyn Camera>,
-    sampler: Arc<dyn Sampler>,
+    pub camera: Arc<dyn Camera + Send + Sync>,
+    sampler: Arc<dyn Sampler + Send + Sync>,
     pixel_bounds: Bounds2i
 }
 
 impl SamplerIntegratorBase {
-    pub fn new(camera: Arc<dyn Camera>, sampler: Arc<dyn Sampler>, pixel_bounds: Bounds2i) -> SamplerIntegratorBase {
+    pub fn new(camera: Arc<dyn Camera + Send + Sync>, sampler: Arc<dyn Sampler + Send + Sync>, pixel_bounds: Bounds2i) -> SamplerIntegratorBase {
         SamplerIntegratorBase { camera, sampler, pixel_bounds }
     }
 
@@ -353,7 +353,7 @@ pub fn uniform_sample_one_light(
 pub fn estimate_direct(
     it: Box<dyn Interaction>,
     u_shading: &Point2f,
-    light: Arc<dyn Light>,
+    light: Arc<dyn Light + Send + Sync>,
     u_light: &Point2f,
     scene: &Scene,
     sampler: Box<dyn Sampler>,

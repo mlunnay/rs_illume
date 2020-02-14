@@ -374,7 +374,7 @@ impl BxDF for DefaultBxDF {
     fn f(
         &self,
         wo: &Vector3f,
-        wi: Vector3f
+        wi: &Vector3f
     ) -> Spectrum {
         panic!("DefaultBxdf called should be an implementation of BxDF.");
     }

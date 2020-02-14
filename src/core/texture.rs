@@ -65,9 +65,9 @@ impl TextureMapping2D for SphericalMapping2D {
         // Compute texture coordinate differentials for sphere $(u,v)$ mapping
         const delta: Float = 0.1;
         let st_delta_x = self.sphere(&(si.p + delta * *si.dpdx.read().unwrap()));
-        *dstdx = (st_delta_x - st) / delta;
+        *dstdx = Vector2f::from((st_delta_x - st) / delta);
         let st_delta_y = self.sphere(&(si.p + delta * *si.dpdy.read().unwrap()));
-        *dstdy = (st_delta_y - st) / delta;
+        *dstdy = Vector2f::from((st_delta_y - st) / delta);
 
         // Handle sphere mapping discontinuity for coordinate differentials
         if dstdx[1] > 0.5 {
@@ -108,7 +108,7 @@ impl TextureMapping2D for CylindricalMapping2D {
         // Compute texture coordinate differentials for cylinder $(u,v)$ mapping
         const delta: Float = 0.01;
         let st_delta_x = self.cylinder(&(si.p + delta * *si.dpdx.read().unwrap()));
-        *dstdx = (st_delta_x - st) / delta;
+        *dstdx = Vector2f::from((st_delta_x - st) / delta);
         if dstdx[1] > 0.5 {
             dstdx[1] = 1.0 - dstdx[1];
         }
@@ -116,7 +116,7 @@ impl TextureMapping2D for CylindricalMapping2D {
             dstdx[1] = -(dstdx[1] + 1.0);
         }
         let st_delta_y = self.cylinder(&(si.p + delta * *si.dpdy.read().unwrap()));
-        *dstdy = (st_delta_y - st) / delta;
+        *dstdy = Vector2f::from((st_delta_y - st) / delta);
         if dstdy[1] > 0.5 {
             dstdy[1] = 1.0 - dstdy[1];
         }

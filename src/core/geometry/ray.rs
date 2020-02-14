@@ -13,7 +13,7 @@ pub struct Ray {
     pub d: Vector3f,
     pub t_max: Float,
     pub time: Float,
-    pub medium: Option<Arc<dyn Medium>>,
+    pub medium: Option<Arc<dyn Medium + Send + Sync>>,
     /// In C++ differential is a subclass of Ray.
     pub differential: Option<RayDifferential>
 }

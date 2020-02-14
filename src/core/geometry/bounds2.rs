@@ -10,7 +10,10 @@ pub type Bounds2f = Bounds2<Float>;
 
 /// Trait for bounding shapes.
 /// This allows for a mix of bounding shapes not just AABB.
-pub trait Bounding2<T: Copy + PartialOrd + Sub<Output = T>> {
+pub trait Bounding2<T>
+where
+T: Copy + PartialOrd + Sub<Output = T> + Mul<Output = T>
+{
     /// Returns a new bounding shape that encompases two shapes.
     fn union(&self, b: &Self) -> Self;
 
@@ -161,7 +164,7 @@ impl<T> Bounds2<T> {
 
 impl<T> Bounding2<T> for Bounds2<T>
 where
-T: Copy + PartialOrd + Sub<Output = T>
+T: Copy + PartialOrd + Sub<Output = T> + Mul<Output = T>
  {
     fn union(&self, b: &Bounds2<T>) -> Bounds2<T> {
         Bounds2::<T>{
@@ -190,10 +193,7 @@ T: Copy + PartialOrd + Sub<Output = T>
         *self
     }
 
-    fn area(&self) -> T
-    where
-    T: Sub<Output=T> + Mul<Output=T>
-    {
+    fn area(&self) -> T {
         let d = self.max - self.min;
         d.x * d.y
     }
